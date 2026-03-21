@@ -34,8 +34,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="he" dir="rtl" className={`dark ${rubik.variable}`} suppressHydrationWarning>
+    <html lang="he" dir="rtl" className={rubik.variable} suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var t=localStorage.getItem('sidur_theme')||'dark';document.documentElement.classList.add(t);})();`,
+          }}
+        />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
       <body className="bg-slate-50 dark:bg-slate-900 font-rubik text-slate-900 dark:text-white antialiased min-h-screen">
