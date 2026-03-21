@@ -15,12 +15,12 @@
 }
 
 html.light {
-  --bg-primary: #f8fafc;      /* slate-50 */
-  --bg-card: #ffffff;
-  --bg-input: #f1f5f9;        /* slate-100 */
-  --text-primary: #0f172a;    /* slate-900 */
-  --text-secondary: #64748b;  /* slate-500 */
-  --border: #e2e8f0;
+  --bg-primary: #f5efe6;      /* warm-100 — easy on eyes */
+  --bg-card: #fdf8f0;         /* warm-50 */
+  --bg-input: #ede8df;        /* warm-200 */
+  --text-primary: #2c2825;    /* warm dark */
+  --text-secondary: #7a7068;
+  --border: #d4cec6;          /* warm-300 */
 }
 
 * {

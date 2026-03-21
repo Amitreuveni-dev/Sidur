@@ -91,7 +91,7 @@ export default function EmployeeView() {
 
       {/* Manager Note (read-only) */}
       {managerNote && (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 mb-4 shadow-sm dark:shadow-none">
+        <div className="bg-warm-50 dark:bg-slate-800 rounded-2xl p-4 mb-4 shadow-sm dark:shadow-none">
           <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-2">הודעה מהמנהל</h3>
           <p className="text-slate-900 dark:text-white whitespace-pre-wrap">{managerNote}</p>
         </div>
@@ -115,7 +115,7 @@ export default function EmployeeView() {
               key={date}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm dark:shadow-none ${
+              className={`bg-warm-50 dark:bg-slate-800 rounded-2xl p-4 shadow-sm dark:shadow-none ${
                 isToday ? 'ring-2 ring-blue-500' : ''
               }`}
             >
@@ -167,7 +167,7 @@ export default function EmployeeView() {
                   return (
                     <div
                       key={shift.id}
-                      className="flex items-center justify-between bg-slate-100 dark:bg-slate-700/50 rounded-xl p-3"
+                      className="flex items-center justify-between bg-warm-200 dark:bg-slate-700/50 rounded-xl p-3"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">

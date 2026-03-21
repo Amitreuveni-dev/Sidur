@@ -80,7 +80,7 @@ export default function ShiftModal({
   const isValid = employeeId && date && startTime && endTime;
 
   const inputClasses =
-    'w-full bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500';
+    'w-full bg-warm-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500';
 
   return (
     <AnimatePresence>
@@ -98,11 +98,11 @@ export default function ShiftModal({
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md bg-white dark:bg-slate-800 rounded-t-3xl p-6 pb-8 max-h-[90vh] overflow-y-auto"
+            className="w-full max-w-md bg-warm-50 dark:bg-slate-800 rounded-t-3xl p-6 pb-8 max-h-[90vh] overflow-y-auto"
           >
             {/* Handle bar */}
             <div className="flex justify-center mb-4">
-              <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-600 rounded-full" />
+              <div className="w-12 h-1.5 bg-warm-300 dark:bg-slate-600 rounded-full" />
             </div>
 
             <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">

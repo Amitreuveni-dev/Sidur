@@ -43,7 +43,7 @@ export default function RootLayout({
         />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
-      <body className="bg-slate-50 dark:bg-slate-900 font-rubik text-slate-900 dark:text-white antialiased min-h-screen">
+      <body className="bg-warm-100 dark:bg-slate-900 font-rubik text-slate-900 dark:text-white antialiased min-h-screen">
         <ThemeProvider>
           <main className="mx-auto max-w-md min-h-screen pb-24">
             {children}
