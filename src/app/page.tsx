@@ -7,6 +7,7 @@ import WeatherWidget from '@/components/WeatherWidget';
 import ManagerNote from '@/components/ManagerNote';
 import WeekTimeline from '@/components/WeekTimeline';
 import WhatsAppExport from '@/components/WhatsAppExport';
+import WeekCalendarModal from '@/components/WeekCalendarModal';
 import ShiftModal from '@/components/ShiftModal';
 import { useTheme } from '@/lib/themeContext';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
@@ -52,6 +53,7 @@ export default function AdminDashboard() {
   const { theme, toggle } = useTheme();
   const [weekId, setWeekId] = useState(getCurrentWeekId());
   const [fabModalOpen, setFabModalOpen] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [showEmployeePanel, setShowEmployeePanel] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [newEmployeeName, setNewEmployeeName] = useState('');
@@ -159,6 +161,13 @@ export default function AdminDashboard() {
                 <span>{'\uD83D\uDC65'}</span>
                 <span>עובדים</span>
               </button>
+              <button
+                onClick={() => setShowCalendar(true)}
+                className="min-h-[44px] flex items-center gap-2 bg-warm-300 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 hover:bg-warm-400 dark:hover:bg-slate-600 active:bg-slate-300 dark:active:bg-slate-600 active:scale-[0.97] font-bold text-sm transition-all duration-150"
+              >
+                <span>📅</span>
+                <span>לוח</span>
+              </button>
             </div>
           )}
 
@@ -186,6 +195,14 @@ export default function AdminDashboard() {
             onClose={() => setFabModalOpen(false)}
             onSaved={triggerRefresh}
             weekId={weekId}
+          />
+
+          {/* Week Calendar Modal */}
+          <WeekCalendarModal
+            isOpen={showCalendar}
+            onClose={() => setShowCalendar(false)}
+            weekId={weekId}
+            weekLabel={formatWeekLabel(weekId)}
           />
 
           {/* Employee Management Panel */}
