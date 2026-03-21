@@ -56,6 +56,20 @@ export default function AdminDashboard() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [newEmployeeName, setNewEmployeeName] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  // Detect virtual keyboard by watching visualViewport resize
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+
+    const handleResize = () => {
+      setKeyboardOpen(viewport.height < window.innerHeight * 0.75);
+    };
+
+    viewport.addEventListener('resize', handleResize);
+    return () => viewport.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     setEmployees(getEmployees());
@@ -151,8 +165,8 @@ export default function AdminDashboard() {
           {/* Week Timeline */}
           <WeekTimeline key={refreshKey} weekId={weekId} isAdmin={isAdmin} />
 
-          {/* FAB - Add Shift */}
-          {isAdmin && (
+          {/* FAB - Add Shift (hidden when keyboard is open) */}
+          {isAdmin && !keyboardOpen && (
             <motion.button
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
