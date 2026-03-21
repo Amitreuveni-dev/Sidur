@@ -9,6 +9,7 @@ import WeekTimeline from '@/components/WeekTimeline';
 import WhatsAppExport from '@/components/WhatsAppExport';
 import ShiftModal from '@/components/ShiftModal';
 import { useTheme } from '@/lib/themeContext';
+import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 import { getEmployees, addEmployee, removeEmployee } from '@/lib/storage';
 import { formatWeekLabel } from '@/lib/weekLabel';
 import type { Employee } from '@/lib/types';
@@ -72,6 +73,8 @@ export default function AdminDashboard() {
     removeEmployee(id);
     setEmployees(getEmployees());
   }, []);
+
+  useBodyScrollLock(showEmployeePanel);
 
   const triggerRefresh = useCallback(() => {
     setRefreshKey((k) => k + 1);
@@ -153,7 +156,7 @@ export default function AdminDashboard() {
               animate={{ scale: 1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => setFabModalOpen(true)}
-              className="fixed bottom-6 left-1/2 -translate-x-1/2 w-14 h-14 bg-blue-500 text-white rounded-full shadow-lg shadow-blue-500/30 flex items-center justify-center text-2xl active:bg-blue-600 z-40"
+              className="fixed bottom-6 inset-x-0 mx-auto w-14 h-14 bg-blue-500 text-white rounded-full shadow-lg shadow-blue-500/30 flex items-center justify-center text-2xl active:bg-blue-600 z-40"
               aria-label="הוסף משמרת"
             >
               +

@@ -178,7 +178,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
   return (
     <>
       {/* Admin toggle button + Change Password button */}
-      <div className="fixed top-4 left-4 z-50 flex items-center gap-2">
+      <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
         <button
           onClick={isAdmin ? handleLock : handleUnlock}
           className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-warm-50 dark:bg-slate-800 active:bg-warm-200 dark:active:bg-slate-700 shadow-lg"

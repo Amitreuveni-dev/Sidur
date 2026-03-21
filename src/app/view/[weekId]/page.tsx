@@ -64,6 +64,8 @@ export default function EmployeeView() {
   const [holidays, setHolidays] = useState<Map<string, HolidayInfo[]>>(new Map());
   const [managerNote, setManagerNote] = useState('');
   const [confirmingShift, setConfirmingShift] = useState<Shift | null>(null);
+  const [viewerId, setViewerId] = useState<string | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   const reload = useCallback(() => {
     setShifts(getShifts(weekId));
@@ -77,9 +79,55 @@ export default function EmployeeView() {
     fetchHolidays().then(setHolidays);
   }, [reload]);
 
+  useEffect(() => {
+    const stored = sessionStorage.getItem('sidur_viewer_id');
+    setViewerId(stored);
+    setSessionChecked(true);
+  }, []);
+
+  const handleIdentitySelect = useCallback((id: string) => {
+    sessionStorage.setItem('sidur_viewer_id', id);
+    setViewerId(id);
+  }, []);
+
   const dates = getWeekDates(weekId);
   const employeeMap = new Map(employees.map((e) => [e.id, e]));
   const confirmationMap = new Map(confirmations.map((c) => [`${c.shiftId}:${c.employeeId}`, c]));
+
+  // Wait until sessionStorage is checked to avoid flashing the identity screen
+  if (!sessionChecked) return null;
+
+  // Identity screen — shown on first visit, cannot be skipped
+  if (!viewerId) {
+    return (
+      <div className="p-4">
+        <div className="mb-6">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">סידור עבודה</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">ניו דלהי — צור הדסה</p>
+        </div>
+        <div className="bg-warm-50 dark:bg-slate-800 rounded-2xl p-6 shadow-sm dark:shadow-none">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-2">מי אתה?</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
+            בחר את שמך כדי להמשיך
+          </p>
+          <div className="flex flex-col gap-3">
+            {employees.map((emp) => (
+              <button
+                key={emp.id}
+                onClick={() => handleIdentitySelect(emp.id)}
+                className="w-full bg-blue-500 text-white font-bold rounded-xl p-4 min-h-[44px] active:bg-blue-600 text-base"
+              >
+                {emp.name}
+              </button>
+            ))}
+            {employees.length === 0 && (
+              <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-4">טוען...</p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4">
@@ -223,6 +271,7 @@ export default function EmployeeView() {
           isOpen={!!confirmingShift}
           onClose={() => setConfirmingShift(null)}
           onConfirmed={reload}
+          lockedEmployeeId={viewerId ?? undefined}
         />
       )}
     </div>
