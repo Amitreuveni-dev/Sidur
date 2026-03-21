@@ -56,14 +56,14 @@ export default function ShiftRow({
         <div className="flex gap-1 flex-shrink-0">
           <button
             onClick={onEdit}
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-warm-300 dark:active:bg-slate-600"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-warm-200 dark:hover:bg-slate-600 active:bg-warm-300 dark:active:bg-slate-600 transition-all duration-150"
             aria-label="ערוך משמרת"
           >
             <span className="text-lg">{'\u270F\uFE0F'}</span>
           </button>
           <button
             onClick={onDelete}
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-warm-300 dark:active:bg-slate-600"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 active:bg-warm-300 dark:active:bg-slate-600 transition-all duration-150"
             aria-label="מחק משמרת"
           >
             <span className="text-lg">{'\uD83D\uDDD1\uFE0F'}</span>

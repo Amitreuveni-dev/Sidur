@@ -94,7 +94,7 @@ export default function AdminDashboard() {
               {/* Theme Toggle */}
               <button
                 onClick={toggle}
-                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-warm-50 dark:bg-slate-800 active:bg-warm-300 dark:active:bg-slate-700 shadow-lg"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-warm-50 dark:bg-slate-800 hover:bg-warm-200 dark:hover:bg-slate-600 active:bg-warm-300 dark:active:bg-slate-700 shadow-lg transition-all duration-150"
                 aria-label={theme === 'dark' ? 'עבור למצב בהיר' : 'עבור למצב כהה'}
               >
                 <span className="text-xl">{theme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19'}</span>
@@ -112,7 +112,7 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between mb-4 bg-warm-50 dark:bg-slate-800 rounded-2xl p-3 shadow-sm dark:shadow-none">
             <button
               onClick={() => setWeekId(getAdjacentWeekId(weekId, -1))}
-              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-warm-200 dark:active:bg-slate-700 text-slate-900 dark:text-white"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-warm-100 dark:hover:bg-slate-700/60 active:bg-warm-200 dark:active:bg-slate-700 text-slate-900 dark:text-white transition-all duration-150"
               aria-label="שבוע קודם"
             >
               <span className="text-xl">{'\u2192'}</span>
@@ -127,7 +127,7 @@ export default function AdminDashboard() {
 
             <button
               onClick={() => setWeekId(getAdjacentWeekId(weekId, 1))}
-              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-warm-200 dark:active:bg-slate-700 text-slate-900 dark:text-white"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-warm-100 dark:hover:bg-slate-700/60 active:bg-warm-200 dark:active:bg-slate-700 text-slate-900 dark:text-white transition-all duration-150"
               aria-label="שבוע הבא"
             >
               <span className="text-xl">{'\u2190'}</span>
@@ -140,7 +140,7 @@ export default function AdminDashboard() {
               <WhatsAppExport weekId={weekId} />
               <button
                 onClick={() => setShowEmployeePanel(true)}
-                className="min-h-[44px] flex items-center gap-2 bg-warm-300 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 active:bg-slate-300 dark:active:bg-slate-600 font-bold text-sm"
+                className="min-h-[44px] flex items-center gap-2 bg-warm-300 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 hover:bg-warm-400 dark:hover:bg-slate-600 active:bg-slate-300 dark:active:bg-slate-600 active:scale-[0.97] font-bold text-sm transition-all duration-150"
               >
                 <span>{'\uD83D\uDC65'}</span>
                 <span>עובדים</span>
@@ -156,9 +156,10 @@ export default function AdminDashboard() {
             <motion.button
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
+              whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => setFabModalOpen(true)}
-              className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] inset-x-0 mx-auto w-14 h-14 bg-blue-500 text-white rounded-full shadow-lg shadow-blue-500/30 flex items-center justify-center text-2xl active:bg-blue-600 z-40"
+              className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] inset-x-0 mx-auto w-14 h-14 bg-blue-500 text-white rounded-full shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 flex items-center justify-center text-2xl hover:bg-blue-600 active:bg-blue-600 z-40 transition-shadow duration-150"
               aria-label="הוסף משמרת"
             >
               +
@@ -211,7 +212,7 @@ export default function AdminDashboard() {
                     <button
                       onClick={handleAddEmployee}
                       disabled={!newEmployeeName.trim()}
-                      className="bg-blue-500 text-white font-bold rounded-xl px-4 min-h-[44px] active:bg-blue-600 disabled:opacity-40"
+                      className="bg-blue-500 text-white font-bold rounded-xl px-4 min-h-[44px] hover:bg-blue-600 active:bg-blue-700 active:scale-[0.97] disabled:opacity-40 disabled:hover:bg-blue-500 transition-all duration-150"
                     >
                       הוסף
                     </button>
@@ -227,7 +228,7 @@ export default function AdminDashboard() {
                         <span className="text-slate-900 dark:text-white font-bold">{emp.name}</span>
                         <button
                           onClick={() => handleRemoveEmployee(emp.id)}
-                          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-warm-300 dark:active:bg-slate-600"
+                          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-warm-200 dark:hover:bg-slate-600 active:bg-warm-300 dark:active:bg-slate-600 transition-all duration-150"
                           aria-label={`הסר את ${emp.name}`}
                         >
                           <span className="text-red-500 dark:text-red-400">{'\u2715'}</span>
@@ -243,7 +244,7 @@ export default function AdminDashboard() {
 
                   <button
                     onClick={() => setShowEmployeePanel(false)}
-                    className="w-full mt-4 text-slate-500 dark:text-slate-400 text-sm p-3 min-h-[44px]"
+                    className="w-full mt-4 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 text-sm p-3 min-h-[44px] transition-colors duration-150"
                   >
                     סגור
                   </button>
