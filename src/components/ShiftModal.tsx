@@ -166,8 +166,8 @@ export default function ShiftModal({
                 </div>
 
                 {/* Times row */}
-                <div className="flex gap-6">
-                  <div className="flex-1">
+                <div className="flex gap-6 justify-center">
+                  <div className="w-[44%]">
                     <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">התחלה</label>
                     <input
                       type="time"
@@ -176,7 +176,7 @@ export default function ShiftModal({
                       className={dateTimeInputClasses}
                     />
                   </div>
-                  <div className="flex-1">
+                  <div className="w-[44%]">
                     <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">סיום</label>
                     <input
                       type="time"
