@@ -1,0 +1,209 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { getEmployees, saveShift } from '@/lib/storage';
+import QuickTemplates from './QuickTemplates';
+import type { Employee, Shift } from '@/lib/types';
+
+interface ShiftModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+  weekId: string;
+  editShift?: Shift | null;
+  defaultDate?: string;
+}
+
+export default function ShiftModal({
+  isOpen,
+  onClose,
+  onSaved,
+  weekId,
+  editShift,
+  defaultDate,
+}: ShiftModalProps) {
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employeeId, setEmployeeId] = useState('');
+  const [date, setDate] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [role, setRole] = useState('');
+  const [note, setNote] = useState('');
+
+  useEffect(() => {
+    setEmployees(getEmployees());
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (editShift) {
+      setEmployeeId(editShift.employeeId);
+      setDate(editShift.date);
+      setStartTime(editShift.startTime);
+      setEndTime(editShift.endTime);
+      setRole(editShift.role ?? '');
+      setNote(editShift.note ?? '');
+    } else {
+      setEmployeeId('');
+      setDate(defaultDate ?? '');
+      setStartTime('');
+      setEndTime('');
+      setRole('');
+      setNote('');
+    }
+  }, [editShift, defaultDate, isOpen]);
+
+  const handleTemplateSelect = useCallback((start: string, end: string) => {
+    setStartTime(start);
+    setEndTime(end);
+  }, []);
+
+  const handleSubmit = useCallback(() => {
+    if (!employeeId || !date || !startTime || !endTime) return;
+
+    const shift: Shift = {
+      id: editShift?.id ?? crypto.randomUUID(),
+      weekId,
+      date,
+      employeeId,
+      startTime,
+      endTime,
+      role: role || undefined,
+      note: note || undefined,
+    };
+
+    saveShift(shift);
+    onSaved();
+    onClose();
+  }, [employeeId, date, startTime, endTime, role, note, weekId, editShift, onSaved, onClose]);
+
+  const isValid = employeeId && date && startTime && endTime;
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[90] flex items-end justify-center bg-black/70"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md bg-slate-800 rounded-t-3xl p-6 pb-8 max-h-[90vh] overflow-y-auto"
+          >
+            {/* Handle bar */}
+            <div className="flex justify-center mb-4">
+              <div className="w-12 h-1.5 bg-slate-600 rounded-full" />
+            </div>
+
+            <h2 className="text-lg font-bold text-white mb-4">
+              {editShift ? 'ערוך משמרת' : 'משמרת חדשה'}
+            </h2>
+
+            <div className="flex flex-col gap-4">
+              {/* Employee Select */}
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">עובד</label>
+                <select
+                  value={employeeId}
+                  onChange={(e) => setEmployeeId(e.target.value)}
+                  className="w-full bg-slate-700 text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">בחר עובד...</option>
+                  {employees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.name}
+                    </option>
+                  ))}
+                </select>
+                {employees.length === 0 && (
+                  <p className="text-xs text-yellow-400 mt-1">
+                    אין עובדים. הוסף עובדים דרך תפריט הניהול.
+                  </p>
+                )}
+              </div>
+
+              {/* Date */}
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">תאריך</label>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="w-full bg-slate-700 text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Quick Templates */}
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">תבניות מהירות</label>
+                <QuickTemplates onSelect={handleTemplateSelect} />
+              </div>
+
+              {/* Times row */}
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="text-sm text-slate-400 mb-1 block">התחלה</label>
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="w-full bg-slate-700 text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-sm text-slate-400 mb-1 block">סיום</label>
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="w-full bg-slate-700 text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* Role */}
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">תפקיד (אופציונלי)</label>
+                <input
+                  type="text"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  placeholder="למשל: קופה, מטבח..."
+                  className="w-full bg-slate-700 text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-500"
+                />
+              </div>
+
+              {/* Note */}
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">הערה (אופציונלי)</label>
+                <input
+                  type="text"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="הערה חופשית..."
+                  className="w-full bg-slate-700 text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-500"
+                />
+              </div>
+
+              {/* Submit */}
+              <button
+                onClick={handleSubmit}
+                disabled={!isValid}
+                className="w-full bg-blue-500 text-white font-bold rounded-xl p-4 min-h-[44px] active:bg-blue-600 disabled:opacity-40 disabled:active:bg-blue-500 mt-2"
+              >
+                {editShift ? 'עדכן משמרת' : 'הוסף משמרת'}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
