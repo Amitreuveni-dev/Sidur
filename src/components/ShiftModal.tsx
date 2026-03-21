@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getEmployees, saveShift } from '@/lib/storage';
+import { getEmployees, getShifts, saveShift } from '@/lib/storage';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 import { fetchShabbatTimes } from '@/lib/hebcal';
 import type { ShabbatTimes } from '@/lib/hebcal';
@@ -110,6 +110,10 @@ export default function ShiftModal({
     onClose();
   }, [employeeId, date, startTime, endTime, role, note, weekId, editShift, onSaved, onClose]);
 
+  const duplicateWarning = employeeId && date && !editShift
+    ? getShifts(weekId).some((s) => s.employeeId === employeeId && s.date === date)
+    : false;
+
   const dow = date ? new Date(date + 'T12:00:00').getDay() : -1;
   const isFriday = dow === 5;
   const isSaturday = dow === 6;
@@ -183,6 +187,11 @@ export default function ShiftModal({
                   {employees.length === 0 && (
                     <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
                       אין עובדים. הוסף עובדים דרך תפריט הניהול.
+                    </p>
+                  )}
+                  {duplicateWarning && (
+                    <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                      ⚠️ לעובד זה כבר יש משמרת ביום זה
                     </p>
                   )}
                 </div>

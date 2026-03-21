@@ -111,6 +111,13 @@ export function confirmShift(shiftId: string, employeeId: string): Confirmation 
   return confirmation;
 }
 
+export function cancelConfirmation(shiftId: string, employeeId: string): void {
+  const confs = getItem<Confirmation[]>(KEYS.CONFIRMATIONS, []).filter(
+    (c) => !(c.shiftId === shiftId && c.employeeId === employeeId)
+  );
+  setItem(KEYS.CONFIRMATIONS, confs);
+}
+
 // ===== Manager Notes =====
 
 export function getManagerNote(weekId: string): string {

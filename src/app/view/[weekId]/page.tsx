@@ -12,6 +12,7 @@ import {
   getManagerNote,
 } from '@/lib/storage';
 import { fetchHolidays, getHolidaysForDate, isErevChag } from '@/lib/hebcal';
+import { formatWeekLabel } from '@/lib/weekLabel';
 import type { Shift, Employee, Confirmation, HolidayInfo } from '@/lib/types';
 
 const HEBREW_DAYS = [
@@ -137,7 +138,7 @@ export default function EmployeeView() {
       {/* Header */}
       <div className="mb-4">
         <h1 className="text-xl font-bold text-slate-900 dark:text-white">סידור עבודה</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">ניו דלהי — צור הדסה — {weekId}</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">ניו דלהי — צור הדסה — {formatWeekLabel(weekId)}</p>
       </div>
 
       {/* Manager Note (read-only) */}

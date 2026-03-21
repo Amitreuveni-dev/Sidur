@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import DayCard from './DayCard';
 import ShiftModal from './ShiftModal';
-import { getShifts, getEmployees, getConfirmations, removeShift } from '@/lib/storage';
+import { getShifts, getEmployees, getConfirmations, removeShift, cancelConfirmation } from '@/lib/storage';
 import { fetchHolidays, getHolidaysForDate, isErevChag } from '@/lib/hebcal';
 import type { Shift, Employee, Confirmation, HolidayInfo } from '@/lib/types';
 
@@ -89,6 +89,14 @@ export default function WeekTimeline({ weekId, isAdmin }: WeekTimelineProps) {
     setModalOpen(true);
   }, []);
 
+  const handleCancelConfirm = useCallback(
+    (shiftId: string, employeeId: string) => {
+      cancelConfirmation(shiftId, employeeId);
+      reload();
+    },
+    [reload]
+  );
+
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
     setEditingShift(null);
@@ -113,6 +121,7 @@ export default function WeekTimeline({ weekId, isAdmin }: WeekTimelineProps) {
             onEditShift={handleEditShift}
             onDeleteShift={handleDeleteShift}
             onAddShift={handleAddShift}
+            onCancelConfirm={handleCancelConfirm}
           />
         ))}
       </div>

@@ -25,6 +25,7 @@ interface DayCardProps {
   onEditShift?: (shift: Shift) => void;
   onDeleteShift?: (shiftId: string) => void;
   onAddShift?: (date: string) => void;
+  onCancelConfirm?: (shiftId: string, employeeId: string) => void;
 }
 
 function formatHebrewDate(dateStr: string): string {
@@ -50,6 +51,7 @@ export default function DayCard({
   onEditShift,
   onDeleteShift,
   onAddShift,
+  onCancelConfirm,
 }: DayCardProps) {
   const dayIndex = getDayOfWeek(date);
   const hebrewDay = HEBREW_DAYS[dayIndex];
@@ -134,6 +136,7 @@ export default function DayCard({
               isAdmin={isAdmin}
               onEdit={() => onEditShift?.(shift)}
               onDelete={() => onDeleteShift?.(shift.id)}
+              onCancelConfirm={() => onCancelConfirm?.(shift.id, shift.employeeId)}
             />
           ))}
         </AnimatePresence>

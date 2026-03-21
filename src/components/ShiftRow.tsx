@@ -10,6 +10,7 @@ interface ShiftRowProps {
   isAdmin: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  onCancelConfirm?: () => void;
 }
 
 export default function ShiftRow({
@@ -19,6 +20,7 @@ export default function ShiftRow({
   isAdmin,
   onEdit,
   onDelete,
+  onCancelConfirm,
 }: ShiftRowProps) {
   return (
     <motion.div
@@ -54,6 +56,16 @@ export default function ShiftRow({
       {/* Admin actions */}
       {isAdmin && (
         <div className="flex gap-1 flex-shrink-0">
+          {confirmation && (
+            <button
+              onClick={onCancelConfirm}
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/30 active:bg-warm-300 dark:active:bg-slate-600 transition-all duration-150"
+              aria-label="בטל אישור"
+              title="בטל אישור משמרת"
+            >
+              <span className="text-lg">↩️</span>
+            </button>
+          )}
           <button
             onClick={onEdit}
             className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-warm-200 dark:hover:bg-slate-600 active:bg-warm-300 dark:active:bg-slate-600 transition-all duration-150"
