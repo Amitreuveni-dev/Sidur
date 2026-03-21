@@ -204,7 +204,7 @@ export default function ShiftModal({
               <button
                 onClick={handleSubmit}
                 disabled={!isValid}
-                className="w-full bg-blue-500 text-white font-bold rounded-xl p-4 min-h-[44px] active:bg-blue-600 disabled:opacity-40 disabled:active:bg-blue-500 mt-2"
+                className="w-full bg-blue-500 text-white font-bold rounded-xl p-4 min-h-[44px] hover:bg-blue-600 active:bg-blue-700 active:scale-[0.97] disabled:opacity-40 disabled:hover:bg-blue-500 disabled:active:bg-blue-500 disabled:active:scale-100 mt-2 transition-all duration-150"
               >
                 {editShift ? 'עדכן משמרת' : 'הוסף משמרת'}
               </button>

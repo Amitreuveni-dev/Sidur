@@ -112,7 +112,7 @@ export default function WhatsAppExport({ weekId }: WhatsAppExportProps) {
     <div className="relative">
       <button
         onClick={handleExport}
-        className="min-h-[44px] min-w-[44px] flex items-center justify-center gap-2 bg-green-600 text-white rounded-xl px-4 py-2 active:bg-green-700 font-bold text-sm"
+        className="min-h-[44px] min-w-[44px] flex items-center justify-center gap-2 bg-green-600 text-white rounded-xl px-4 py-2 hover:bg-green-700 active:bg-green-800 active:scale-[0.97] font-bold text-sm transition-all duration-150"
         aria-label="שתף בוואטסאפ"
       >
         <span>📤</span>

@@ -115,7 +115,7 @@ export default function EmployeeView() {
               <button
                 key={emp.id}
                 onClick={() => handleIdentitySelect(emp.id)}
-                className="w-full bg-blue-500 text-white font-bold rounded-xl p-4 min-h-[44px] active:bg-blue-600 text-base"
+                className="w-full bg-blue-500 text-white font-bold rounded-xl p-4 min-h-[44px] hover:bg-blue-600 active:bg-blue-700 active:scale-[0.97] text-base transition-all duration-150"
               >
                 {emp.name}
               </button>
@@ -244,7 +244,7 @@ export default function EmployeeView() {
                       {!isConfirmed && (
                         <button
                           onClick={() => setConfirmingShift(shift)}
-                          className="min-h-[44px] bg-green-600 text-white text-sm font-bold rounded-xl px-3 py-2 active:bg-green-700 flex-shrink-0 mr-2"
+                          className="min-h-[44px] bg-green-600 text-white text-sm font-bold rounded-xl px-3 py-2 hover:bg-green-700 active:bg-green-800 active:scale-[0.97] flex-shrink-0 mr-2 transition-all duration-150"
                         >
                           אשר משמרת
                         </button>

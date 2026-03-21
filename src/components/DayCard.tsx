@@ -88,7 +88,7 @@ export default function DayCard({
         {isAdmin && onAddShift && (
           <button
             onClick={() => onAddShift(date)}
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-warm-200 dark:active:bg-slate-700"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-warm-100 dark:hover:bg-slate-700/60 active:bg-warm-200 dark:active:bg-slate-700 transition-all duration-150"
             aria-label="הוסף משמרת ליום זה"
           >
             <span className="text-blue-500 dark:text-blue-400 text-xl">+</span>

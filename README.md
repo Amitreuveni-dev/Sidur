@@ -124,6 +124,7 @@ public/
 - [x] **Glassmorphism** — BottomNav, ShiftCard, modals use `backdrop-blur` + semi-transparent white
 - [x] **Gradient background** — Soft purple→blue→green gradient across all pages
 - [x] **next.config.ts** — Config converted to TypeScript (was .mjs)
+- [x] **Hover effects & micro-animations** — All interactive buttons have tasteful hover states (Tailwind `hover:`, `transition-all`) and Framer Motion scale effects on FAB/gear button; respects dark/light mode
 
 ---
 

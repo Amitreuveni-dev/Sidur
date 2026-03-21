@@ -179,7 +179,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
     <>
       <button
         onClick={isAdmin ? handleLock : handleUnlock}
-        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-warm-50 dark:bg-slate-800 active:bg-warm-200 dark:active:bg-slate-700 shadow-lg"
+        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-warm-50 dark:bg-slate-800 hover:bg-warm-200 dark:hover:bg-slate-600 active:bg-warm-200 dark:active:bg-slate-700 shadow-lg transition-all duration-150"
         aria-label={isAdmin ? 'נעל מצב מנהל' : 'פתח מצב מנהל'}
       >
         <span className="text-xl">{isAdmin ? '\uD83D\uDD13' : '\uD83D\uDD12'}</span>
@@ -191,8 +191,10 @@ export default function AdminGuard({ children }: AdminGuardProps) {
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
             onClick={openChangePassword}
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-warm-50 dark:bg-slate-800 active:bg-warm-200 dark:active:bg-slate-700 shadow-lg"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-warm-50 dark:bg-slate-800 hover:bg-warm-200 dark:hover:bg-slate-600 active:bg-warm-200 dark:active:bg-slate-700 shadow-lg transition-colors duration-150"
             aria-label="שנה סיסמה"
           >
             <span className="text-lg">{'\u2699\uFE0F'}</span>
@@ -247,13 +249,13 @@ export default function AdminGuard({ children }: AdminGuardProps) {
               )}
               <button
                 onClick={handleSubmitPin}
-                className="w-full mt-4 bg-blue-500 text-white font-bold rounded-xl p-3 min-h-[44px] active:bg-blue-600"
+                className="w-full mt-4 bg-blue-500 text-white font-bold rounded-xl p-3 min-h-[44px] hover:bg-blue-600 active:bg-blue-700 active:scale-[0.97] transition-all duration-150"
               >
                 כניסה
               </button>
               <button
                 onClick={() => setShowPinModal(false)}
-                className="w-full mt-2 text-slate-500 dark:text-slate-400 text-sm p-2 min-h-[44px]"
+                className="w-full mt-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 text-sm p-2 min-h-[44px] transition-colors duration-150"
               >
                 ביטול
               </button>
@@ -261,7 +263,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
               {/* Forgot Password link */}
               <button
                 onClick={openForgotPassword}
-                className="w-full mt-1 text-blue-500 dark:text-blue-400 text-sm p-2 min-h-[44px] active:text-blue-400 dark:active:text-blue-300"
+                className="w-full mt-1 text-blue-500 dark:text-blue-400 text-sm p-2 min-h-[44px] hover:text-blue-600 dark:hover:text-blue-300 active:text-blue-400 dark:active:text-blue-300 transition-colors duration-150"
               >
                 שכחתי סיסמה
               </button>
@@ -348,13 +350,13 @@ export default function AdminGuard({ children }: AdminGuardProps) {
               {/* Actions */}
               <button
                 onClick={handleChangePassword}
-                className="w-full mt-4 bg-blue-500 text-white font-bold rounded-xl p-3 min-h-[44px] active:bg-blue-600"
+                className="w-full mt-4 bg-blue-500 text-white font-bold rounded-xl p-3 min-h-[44px] hover:bg-blue-600 active:bg-blue-700 active:scale-[0.97] transition-all duration-150"
               >
                 שמור
               </button>
               <button
                 onClick={closeChangePassword}
-                className="w-full mt-2 text-slate-500 dark:text-slate-400 text-sm p-2 min-h-[44px]"
+                className="w-full mt-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 text-sm p-2 min-h-[44px] transition-colors duration-150"
               >
                 ביטול
               </button>
@@ -408,7 +410,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
 
                   <button
                     onClick={handleVerifyMasterCode}
-                    className="w-full mt-4 bg-blue-500 text-white font-bold rounded-xl p-3 min-h-[44px] active:bg-blue-600"
+                    className="w-full mt-4 bg-blue-500 text-white font-bold rounded-xl p-3 min-h-[44px] hover:bg-blue-600 active:bg-blue-700 active:scale-[0.97] transition-all duration-150"
                   >
                     אימות
                   </button>
@@ -454,7 +456,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
 
                   <button
                     onClick={handleResetPassword}
-                    className="w-full mt-4 bg-blue-500 text-white font-bold rounded-xl p-3 min-h-[44px] active:bg-blue-600"
+                    className="w-full mt-4 bg-blue-500 text-white font-bold rounded-xl p-3 min-h-[44px] hover:bg-blue-600 active:bg-blue-700 active:scale-[0.97] transition-all duration-150"
                   >
                     שמור וכניסה
                   </button>
@@ -463,7 +465,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
 
               <button
                 onClick={closeForgotPassword}
-                className="w-full mt-2 text-slate-500 dark:text-slate-400 text-sm p-2 min-h-[44px]"
+                className="w-full mt-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 text-sm p-2 min-h-[44px] transition-colors duration-150"
               >
                 ביטול
               </button>

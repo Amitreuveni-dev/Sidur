@@ -88,14 +88,14 @@ export default function EmployeeConfirm({
             <button
               onClick={handleConfirm}
               disabled={!resolvedId}
-              className="w-full bg-green-500 text-white font-bold rounded-xl p-3 min-h-[44px] active:bg-green-600 disabled:opacity-40"
+              className="w-full bg-green-500 text-white font-bold rounded-xl p-3 min-h-[44px] hover:bg-green-600 active:bg-green-700 active:scale-[0.97] disabled:opacity-40 disabled:hover:bg-green-500 disabled:active:scale-100 transition-all duration-150"
             >
               אשר משמרת
             </button>
 
             <button
               onClick={onClose}
-              className="w-full mt-2 text-slate-500 dark:text-slate-400 text-sm p-2 min-h-[44px]"
+              className="w-full mt-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 text-sm p-2 min-h-[44px] transition-colors duration-150"
             >
               ביטול
             </button>
