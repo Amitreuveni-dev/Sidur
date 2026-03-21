@@ -38,7 +38,11 @@ function getWeekDates(weekId: string): string[] {
   for (let i = 0; i < 7; i++) {
     const d = new Date(sunday);
     d.setDate(sunday.getDate() + i);
-    dates.push(d.toISOString().slice(0, 10));
+    // Use local date parts to avoid UTC offset shifting the date
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    dates.push(`${y}-${m}-${day}`);
   }
   return dates;
 }
