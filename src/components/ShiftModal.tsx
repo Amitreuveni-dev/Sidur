@@ -154,7 +154,7 @@ export default function ShiftModal({
                       type="date"
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
-                      className={`${dateTimeInputClasses} max-h-[44px]`}
+                      className={`${dateTimeInputClasses} !h-[44px]`}
                     />
                   </div>
                 </div>
@@ -166,7 +166,7 @@ export default function ShiftModal({
                 </div>
 
                 {/* Times row */}
-                <div className="flex gap-3">
+                <div className="flex gap-6">
                   <div className="flex-1">
                     <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">התחלה</label>
                     <input
