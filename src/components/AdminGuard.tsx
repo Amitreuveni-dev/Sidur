@@ -15,7 +15,7 @@ import {
 const MASTER_RESET_CODE = 'NEWDELHI2026';
 
 interface AdminGuardProps {
-  children: (isAdmin: boolean) => React.ReactNode;
+  children: (isAdmin: boolean, adminButtons: React.ReactNode) => React.ReactNode;
 }
 
 export default function AdminGuard({ children }: AdminGuardProps) {
@@ -174,25 +174,20 @@ export default function AdminGuard({ children }: AdminGuardProps) {
     closeForgotPassword();
   }, [fpNewPin, fpConfirmPin, closeForgotPassword]);
 
-  // Shared PIN input classes
-  const pinInputClasses =
-    'w-full rounded-xl bg-warm-200 dark:bg-slate-700 text-slate-900 dark:text-white text-center text-xl tracking-[0.3em] p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-sm placeholder:tracking-normal';
-
-  return (
+  // Buttons exposed to the header via render prop (no fixed positioning)
+  const adminButtons = (
     <>
-      {/* Admin toggle button + Change Password button */}
-      <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
-        <button
-          onClick={isAdmin ? handleLock : handleUnlock}
-          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-warm-50 dark:bg-slate-800 active:bg-warm-200 dark:active:bg-slate-700 shadow-lg"
-          aria-label={isAdmin ? 'נעל מצב מנהל' : 'פתח מצב מנהל'}
-        >
-          <span className="text-xl">{isAdmin ? '\uD83D\uDD13' : '\uD83D\uDD12'}</span>
-        </button>
-
-        {/* Change Password button — only visible when admin is logged in */}
+      <button
+        onClick={isAdmin ? handleLock : handleUnlock}
+        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-warm-50 dark:bg-slate-800 active:bg-warm-200 dark:active:bg-slate-700 shadow-lg"
+        aria-label={isAdmin ? 'נעל מצב מנהל' : 'פתח מצב מנהל'}
+      >
+        <span className="text-xl">{isAdmin ? '\uD83D\uDD13' : '\uD83D\uDD12'}</span>
+      </button>
+      <AnimatePresence>
         {isAdmin && (
           <motion.button
+            key="gear"
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
@@ -203,7 +198,16 @@ export default function AdminGuard({ children }: AdminGuardProps) {
             <span className="text-lg">{'\u2699\uFE0F'}</span>
           </motion.button>
         )}
-      </div>
+      </AnimatePresence>
+    </>
+  );
+
+  // Shared PIN input classes
+  const pinInputClasses =
+    'w-full rounded-xl bg-warm-200 dark:bg-slate-700 text-slate-900 dark:text-white text-center text-xl tracking-[0.3em] p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-sm placeholder:tracking-normal';
+
+  return (
+    <>
 
       {/* ============================== */}
       {/* PIN Login Modal (existing)     */}
@@ -468,7 +472,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
         )}
       </AnimatePresence>
 
-      {children(isAdmin)}
+      {children(isAdmin, adminButtons)}
     </>
   );
 }

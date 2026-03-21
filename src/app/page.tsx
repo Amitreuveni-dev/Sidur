@@ -82,8 +82,8 @@ export default function AdminDashboard() {
 
   return (
     <AdminGuard>
-      {(isAdmin) => (
-        <div className="px-4 pt-16 pb-4">
+      {(isAdmin, adminButtons) => (
+        <div className="p-4">
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -99,6 +99,8 @@ export default function AdminDashboard() {
               >
                 <span className="text-xl">{theme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19'}</span>
               </button>
+              {/* Admin buttons — inline between theme toggle and weather */}
+              {adminButtons}
             </div>
             <WeatherWidget />
           </div>
