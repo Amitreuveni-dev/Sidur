@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getEmployees, saveShift } from '@/lib/storage';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
+import { fetchShabbatTimes } from '@/lib/hebcal';
+import type { ShabbatTimes } from '@/lib/hebcal';
 import QuickTemplates from './QuickTemplates';
 import type { Employee, Shift } from '@/lib/types';
 
@@ -33,6 +35,9 @@ export default function ShiftModal({
   const [endTime, setEndTime] = useState('');
   const [role, setRole] = useState('');
   const [note, setNote] = useState('');
+  const [shabbatTimes, setShabbatTimes] = useState<ShabbatTimes | null>(null);
+  const [shabbatLoading, setShabbatLoading] = useState(false);
+  const [storeOpenTime, setStoreOpenTime] = useState('');
 
   useEffect(() => {
     setEmployees(getEmployees());
@@ -55,6 +60,31 @@ export default function ShiftModal({
       setNote('');
     }
   }, [editShift, defaultDate, isOpen]);
+
+  // Fetch Shabbat times when date is Friday or Saturday
+  useEffect(() => {
+    if (!date) {
+      setShabbatTimes(null);
+      setStoreOpenTime('');
+      return;
+    }
+    const d = new Date(date + 'T12:00:00');
+    const dow = d.getDay(); // 5 = Friday, 6 = Saturday
+    if (dow !== 5 && dow !== 6) {
+      setShabbatTimes(null);
+      setStoreOpenTime('');
+      return;
+    }
+    const fridayDate = dow === 6
+      ? new Date(d.getTime() - 86400000).toISOString().slice(0, 10)
+      : date;
+    setShabbatLoading(true);
+    fetchShabbatTimes(fridayDate).then((times) => {
+      setShabbatTimes(times);
+      if (times && dow === 6) setStoreOpenTime(times.havdalah);
+      setShabbatLoading(false);
+    });
+  }, [date]);
 
   const handleTemplateSelect = useCallback((start: string, end: string) => {
     setStartTime(start);
@@ -80,7 +110,18 @@ export default function ShiftModal({
     onClose();
   }, [employeeId, date, startTime, endTime, role, note, weekId, editShift, onSaved, onClose]);
 
-  const isValid = employeeId && date && startTime && endTime;
+  const dow = date ? new Date(date + 'T12:00:00').getDay() : -1;
+  const isFriday = dow === 5;
+  const isSaturday = dow === 6;
+
+  const shabbatError =
+    isFriday && shabbatTimes && endTime && endTime > shabbatTimes.candleLighting
+      ? `המשמרת חייבת להסתיים לפני כניסת שבת (${shabbatTimes.candleLighting})`
+      : isSaturday && storeOpenTime && startTime && startTime < storeOpenTime
+      ? `המשמרת חייבת להתחיל לאחר פתיחת החנות (${storeOpenTime})`
+      : '';
+
+  const isValid = !!(employeeId && date && startTime && endTime) && !shabbatError && !shabbatLoading;
 
   const inputClasses =
     'w-full bg-warm-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl p-3 h-[44px] outline-none focus:ring-2 focus:ring-blue-500';
@@ -159,6 +200,28 @@ export default function ShiftModal({
                   </div>
                 </div>
 
+                {/* Shabbat candle lighting info (Friday) */}
+                {isFriday && shabbatTimes && (
+                  <p className="text-xs text-blue-500 dark:text-blue-400 text-right -mt-2">
+                    כניסת שבת: {shabbatTimes.candleLighting} — המשמרת חייבת להסתיים לפניה
+                  </p>
+                )}
+
+                {/* Saturday store open time */}
+                {isSaturday && (
+                  <div>
+                    <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">
+                      חנות נפתחת בשעה {shabbatTimes && `(יציאת שבת: ${shabbatTimes.havdalah})`}
+                    </label>
+                    <input
+                      type="time"
+                      value={storeOpenTime}
+                      onChange={(e) => setStoreOpenTime(e.target.value)}
+                      className={`${dateTimeInputClasses} !h-[44px]`}
+                    />
+                  </div>
+                )}
+
                 {/* Quick Templates */}
                 <div>
                   <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">תבניות מהירות</label>
@@ -186,6 +249,13 @@ export default function ShiftModal({
                     />
                   </div>
                 </div>
+
+                {/* Shabbat validation error */}
+                {shabbatError && (
+                  <p className="text-xs text-red-500 dark:text-red-400 text-right -mt-2">
+                    {shabbatError}
+                  </p>
+                )}
 
                 {/* Role */}
                 <div>

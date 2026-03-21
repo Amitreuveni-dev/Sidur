@@ -1,5 +1,48 @@
 import type { HebcalResponse, HolidayInfo } from './types';
 
+// ===== Shabbat Times =====
+
+export interface ShabbatTimes {
+  candleLighting: string; // HH:MM Jerusalem local time
+  havdalah: string;       // HH:MM Jerusalem local time
+}
+
+const shabbatCache = new Map<string, ShabbatTimes>();
+
+export async function fetchShabbatTimes(fridayDateStr: string): Promise<ShabbatTimes | null> {
+  if (shabbatCache.has(fridayDateStr)) return shabbatCache.get(fridayDateStr)!;
+
+  const [year, month, day] = fridayDateStr.split('-');
+  const url = `https://www.hebcal.com/shabbat?cfg=json&geo=pos&latitude=31.716&longitude=35.112&tzid=Asia%2FJerusalem&M=on&gy=${year}&gm=${month}&gd=${day}`;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HebCal error: ${res.status}`);
+    const data = await res.json();
+
+    let candleLighting = '';
+    let havdalah = '';
+
+    for (const item of data.items ?? []) {
+      if (item.category === 'candles' && !candleLighting) {
+        candleLighting = (item.date as string).slice(11, 16);
+      }
+      if (item.category === 'havdalah' && !havdalah) {
+        havdalah = (item.date as string).slice(11, 16);
+      }
+    }
+
+    if (!candleLighting && !havdalah) return null;
+
+    const result: ShabbatTimes = { candleLighting, havdalah };
+    shabbatCache.set(fridayDateStr, result);
+    return result;
+  } catch (err) {
+    console.error('Failed to fetch Shabbat times:', err);
+    return null;
+  }
+}
+
 let cachedHolidays: Map<string, HolidayInfo[]> | null = null;
 let cacheYear: number | null = null;
 
