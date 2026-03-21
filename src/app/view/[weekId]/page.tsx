@@ -94,11 +94,6 @@ export default function EmployeeView() {
     setViewerId(id);
   }, []);
 
-  const handleChangeIdentity = useCallback(() => {
-    localStorage.removeItem('sidur_viewer_id');
-    setViewerId(null);
-  }, []);
-
   const dates = getWeekDates(weekId);
   const employeeMap = new Map(employees.map((e) => [e.id, e]));
   const confirmationMap = new Map(confirmations.map((c) => [`${c.shiftId}:${c.employeeId}`, c]));
@@ -141,17 +136,9 @@ export default function EmployeeView() {
   return (
     <div className="p-4">
       {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">סידור עבודה</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">ניו דלהי — צור הדסה — {formatWeekLabel(weekId)}</p>
-        </div>
-        <button
-          onClick={handleChangeIdentity}
-          className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 mt-1 transition-colors duration-150"
-        >
-          {employeeMap.get(viewerId)?.name} ✕
-        </button>
+      <div className="mb-4">
+        <h1 className="text-xl font-bold text-slate-900 dark:text-white">סידור עבודה</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">ניו דלהי — צור הדסה — {formatWeekLabel(weekId)}</p>
       </div>
 
       {/* Manager Note (read-only) */}
