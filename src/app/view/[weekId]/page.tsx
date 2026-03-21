@@ -44,7 +44,10 @@ function getWeekDates(weekId: string): string[] {
   for (let i = 0; i < 7; i++) {
     const d = new Date(sunday);
     d.setDate(sunday.getDate() + i);
-    dates.push(d.toISOString().slice(0, 10));
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    dates.push(`${y}-${m}-${day}`);
   }
   return dates;
 }
@@ -149,12 +152,17 @@ export default function EmployeeView() {
       <div className="flex flex-col gap-3">
         {dates.map((date) => {
           const dayShifts = shifts
-            .filter((s) => s.date === date)
+            .filter((s) => s.date === date && s.employeeId === viewerId)
             .sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+          if (dayShifts.length === 0) return null;
+
           const dayIndex = new Date(date + 'T00:00:00').getDay();
           const hebrewDay = HEBREW_DAYS[dayIndex];
           const formattedDate = formatHebrewDate(date);
-          const isToday = new Date().toISOString().slice(0, 10) === date;
+          const now = new Date();
+          const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+          const isToday = todayStr === date;
           const dayHolidays = getHolidaysForDate(date, holidays);
           const erevChag = isErevChag(date, holidays);
 
@@ -241,7 +249,7 @@ export default function EmployeeView() {
                         )}
                       </div>
 
-                      {!isConfirmed && (
+                      {!isConfirmed && shift.employeeId === viewerId && (
                         <button
                           onClick={() => setConfirmingShift(shift)}
                           className="min-h-[44px] bg-green-600 text-white text-sm font-bold rounded-xl px-3 py-2 hover:bg-green-700 active:bg-green-800 active:scale-[0.97] flex-shrink-0 mr-2 transition-all duration-150"
@@ -253,11 +261,6 @@ export default function EmployeeView() {
                   );
                 })}
 
-                {dayShifts.length === 0 && (
-                  <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-2">
-                    אין משמרות
-                  </p>
-                )}
               </div>
             </motion.div>
           );
