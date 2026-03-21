@@ -50,7 +50,7 @@ export default function EmployeeConfirm({
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-xs bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl"
+            className="w-full max-w-xs bg-warm-50 dark:bg-slate-800 rounded-2xl p-6 shadow-2xl"
           >
             <h2 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-1">
               אישור משמרת
@@ -60,7 +60,7 @@ export default function EmployeeConfirm({
             <select
               value={selectedId}
               onChange={(e) => setSelectedId(e.target.value)}
-              className="w-full bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 mb-4"
+              className="w-full bg-warm-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 mb-4"
             >
               <option value="">בחר את שמך...</option>
               {employees.map((emp) => (

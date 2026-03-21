@@ -173,7 +173,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
 
   // Shared PIN input classes
   const pinInputClasses =
-    'w-full rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white text-center text-xl tracking-[0.3em] p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-sm placeholder:tracking-normal';
+    'w-full rounded-xl bg-warm-200 dark:bg-slate-700 text-slate-900 dark:text-white text-center text-xl tracking-[0.3em] p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-sm placeholder:tracking-normal';
 
   return (
     <>
@@ -181,7 +181,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
       <div className="fixed top-4 left-4 z-50 flex items-center gap-2">
         <button
           onClick={isAdmin ? handleLock : handleUnlock}
-          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-white dark:bg-slate-800 active:bg-slate-100 dark:active:bg-slate-700 shadow-lg"
+          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-warm-50 dark:bg-slate-800 active:bg-warm-200 dark:active:bg-slate-700 shadow-lg"
           aria-label={isAdmin ? 'נעל מצב מנהל' : 'פתח מצב מנהל'}
         >
           <span className="text-xl">{isAdmin ? '\uD83D\uDD13' : '\uD83D\uDD12'}</span>
@@ -194,7 +194,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             onClick={openChangePassword}
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-white dark:bg-slate-800 active:bg-slate-100 dark:active:bg-slate-700 shadow-lg"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-warm-50 dark:bg-slate-800 active:bg-warm-200 dark:active:bg-slate-700 shadow-lg"
             aria-label="שנה סיסמה"
           >
             <span className="text-lg">{'\u2699\uFE0F'}</span>
@@ -219,7 +219,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-xs bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl"
+              className="w-full max-w-xs bg-warm-50 dark:bg-slate-800 rounded-2xl p-6 shadow-2xl"
             >
               <h2 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-4">
                 הזן קוד מנהל
@@ -232,7 +232,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
                 onChange={(e) => setPin(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSubmitPin()}
                 placeholder="קוד PIN"
-                className="w-full rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white text-center text-2xl tracking-[0.5em] p-4 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-base placeholder:tracking-normal"
+                className="w-full rounded-xl bg-warm-200 dark:bg-slate-700 text-slate-900 dark:text-white text-center text-2xl tracking-[0.5em] p-4 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-base placeholder:tracking-normal"
                 autoFocus
               />
               {error && (
@@ -280,7 +280,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-xs bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl"
+              className="w-full max-w-xs bg-warm-50 dark:bg-slate-800 rounded-2xl p-6 shadow-2xl"
             >
               <h2 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-4">
                 שינוי סיסמה
@@ -373,7 +373,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-xs bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl"
+              className="w-full max-w-xs bg-warm-50 dark:bg-slate-800 rounded-2xl p-6 shadow-2xl"
             >
               <h2 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-4">
                 שחזור סיסמה
@@ -391,7 +391,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
                     onChange={(e) => setFpMasterCode(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleVerifyMasterCode()}
                     placeholder="הזן קוד שחזור"
-                    className="w-full rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white text-center text-lg p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-sm"
+                    className="w-full rounded-xl bg-warm-200 dark:bg-slate-700 text-slate-900 dark:text-white text-center text-lg p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-sm"
                     autoFocus
                   />
 

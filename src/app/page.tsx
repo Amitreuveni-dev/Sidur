@@ -91,7 +91,7 @@ export default function AdminDashboard() {
               {/* Theme Toggle */}
               <button
                 onClick={toggle}
-                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-white dark:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 shadow-lg"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-warm-50 dark:bg-slate-800 active:bg-warm-300 dark:active:bg-slate-700 shadow-lg"
                 aria-label={theme === 'dark' ? 'עבור למצב בהיר' : 'עבור למצב כהה'}
               >
                 <span className="text-xl">{theme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19'}</span>
@@ -104,10 +104,10 @@ export default function AdminDashboard() {
           <ManagerNote weekId={weekId} isAdmin={isAdmin} />
 
           {/* Week Navigation */}
-          <div className="flex items-center justify-between mb-4 bg-white dark:bg-slate-800 rounded-2xl p-3 shadow-sm dark:shadow-none">
+          <div className="flex items-center justify-between mb-4 bg-warm-50 dark:bg-slate-800 rounded-2xl p-3 shadow-sm dark:shadow-none">
             <button
               onClick={() => setWeekId(getAdjacentWeekId(weekId, -1))}
-              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-slate-100 dark:active:bg-slate-700 text-slate-900 dark:text-white"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-warm-200 dark:active:bg-slate-700 text-slate-900 dark:text-white"
               aria-label="שבוע קודם"
             >
               <span className="text-xl">{'\u2192'}</span>
@@ -122,7 +122,7 @@ export default function AdminDashboard() {
 
             <button
               onClick={() => setWeekId(getAdjacentWeekId(weekId, 1))}
-              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-slate-100 dark:active:bg-slate-700 text-slate-900 dark:text-white"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-warm-200 dark:active:bg-slate-700 text-slate-900 dark:text-white"
               aria-label="שבוע הבא"
             >
               <span className="text-xl">{'\u2190'}</span>
@@ -135,7 +135,7 @@ export default function AdminDashboard() {
               <WhatsAppExport weekId={weekId} />
               <button
                 onClick={() => setShowEmployeePanel(true)}
-                className="min-h-[44px] flex items-center gap-2 bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 active:bg-slate-300 dark:active:bg-slate-600 font-bold text-sm"
+                className="min-h-[44px] flex items-center gap-2 bg-warm-300 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 active:bg-slate-300 dark:active:bg-slate-600 font-bold text-sm"
               >
                 <span>{'\uD83D\uDC65'}</span>
                 <span>עובדים</span>
@@ -184,7 +184,7 @@ export default function AdminDashboard() {
                   exit={{ y: '100%' }}
                   transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                   onClick={(e) => e.stopPropagation()}
-                  className="w-full max-w-md bg-white dark:bg-slate-800 rounded-t-3xl p-6 pb-8 max-h-[80vh] overflow-y-auto"
+                  className="w-full max-w-md bg-warm-50 dark:bg-slate-800 rounded-t-3xl p-6 pb-8 max-h-[80vh] overflow-y-auto"
                 >
                   {/* Handle bar */}
                   <div className="flex justify-center mb-4">
@@ -201,7 +201,7 @@ export default function AdminDashboard() {
                       onChange={(e) => setNewEmployeeName(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleAddEmployee()}
                       placeholder="שם עובד חדש..."
-                      className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                      className="flex-1 bg-warm-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                     />
                     <button
                       onClick={handleAddEmployee}
@@ -217,12 +217,12 @@ export default function AdminDashboard() {
                     {employees.map((emp) => (
                       <div
                         key={emp.id}
-                        className="flex items-center justify-between bg-slate-100 dark:bg-slate-700/50 rounded-xl p-3"
+                        className="flex items-center justify-between bg-warm-200 dark:bg-slate-700/50 rounded-xl p-3"
                       >
                         <span className="text-slate-900 dark:text-white font-bold">{emp.name}</span>
                         <button
                           onClick={() => handleRemoveEmployee(emp.id)}
-                          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-slate-200 dark:active:bg-slate-600"
+                          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-warm-300 dark:active:bg-slate-600"
                           aria-label={`הסר את ${emp.name}`}
                         >
                           <span className="text-red-500 dark:text-red-400">{'\u2715'}</span>

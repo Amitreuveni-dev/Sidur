@@ -26,7 +26,7 @@ export default function ShiftRow({
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className="flex items-center justify-between bg-slate-100 dark:bg-slate-700/50 rounded-xl p-3 gap-2"
+      className="flex items-center justify-between bg-warm-200 dark:bg-slate-700/50 rounded-xl p-3 gap-2"
     >
       {/* Shift info */}
       <div className="flex-1 min-w-0">
@@ -56,14 +56,14 @@ export default function ShiftRow({
         <div className="flex gap-1 flex-shrink-0">
           <button
             onClick={onEdit}
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-slate-200 dark:active:bg-slate-600"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-warm-300 dark:active:bg-slate-600"
             aria-label="ערוך משמרת"
           >
             <span className="text-lg">{'\u270F\uFE0F'}</span>
           </button>
           <button
             onClick={onDelete}
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-slate-200 dark:active:bg-slate-600"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-warm-300 dark:active:bg-slate-600"
             aria-label="מחק משמרת"
           >
             <span className="text-lg">{'\uD83D\uDDD1\uFE0F'}</span>

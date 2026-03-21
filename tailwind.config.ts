@@ -13,6 +13,12 @@ const config: Config = {
         rubik: ["Rubik", "sans-serif"],
       },
       colors: {
+        warm: {
+          50:  '#fdf8f0',  // card bg (replaces white)
+          100: '#f5efe6',  // page bg (replaces slate-50)
+          200: '#ede8df',  // input/row bg (replaces slate-100)
+          300: '#d4cec6',  // handles/borders
+        },
         shift: {
           morning: "#EFF6FF",   // Light Blue bg
           morningText: "#1D4ED8",

@@ -69,7 +69,7 @@ export default function DayCard({
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm dark:shadow-none ${
+      className={`bg-warm-50 dark:bg-slate-800 rounded-2xl p-4 shadow-sm dark:shadow-none ${
         isToday ? 'ring-2 ring-blue-500' : ''
       }`}
     >
@@ -88,7 +88,7 @@ export default function DayCard({
         {isAdmin && onAddShift && (
           <button
             onClick={() => onAddShift(date)}
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-slate-100 dark:active:bg-slate-700"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-warm-200 dark:active:bg-slate-700"
             aria-label="הוסף משמרת ליום זה"
           >
             <span className="text-blue-500 dark:text-blue-400 text-xl">+</span>
