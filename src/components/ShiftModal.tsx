@@ -98,8 +98,9 @@ export default function ShiftModal({
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md bg-warm-50 dark:bg-slate-800 rounded-t-3xl p-6 pb-8 max-h-[90vh] overflow-y-auto"
+            className="w-full max-w-md bg-warm-50 dark:bg-slate-800 rounded-t-3xl overflow-hidden max-h-[90vh]"
           >
+          <div className="overflow-y-auto max-h-[90vh] p-6 pb-8">
             {/* Handle bar */}
             <div className="flex justify-center mb-4">
               <div className="w-12 h-1.5 bg-warm-300 dark:bg-slate-600 rounded-full" />
@@ -204,6 +205,7 @@ export default function ShiftModal({
                 {editShift ? 'עדכן משמרת' : 'הוסף משמרת'}
               </button>
             </div>
+          </div>
           </motion.div>
         </motion.div>
       )}
