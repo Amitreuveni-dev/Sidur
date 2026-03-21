@@ -11,7 +11,7 @@ import {
 } from '@/lib/storage';
 
 // Master reset code — hardcoded, never stored in localStorage
-const MASTER_RESET_CODE = 'NEWDELHI2024';
+const MASTER_RESET_CODE = 'NEWDELHI2026';
 
 interface AdminGuardProps {
   children: (isAdmin: boolean) => React.ReactNode;
@@ -111,7 +111,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
 
     // Save
     setAdminCode(cpNewPin);
-    setCpSuccess('הסיסמה שונתה בהצלחה ✓');
+    setCpSuccess('הסיסמה שונתה בהצלחה \u2713');
     setCpCurrentPin('');
     setCpNewPin('');
     setCpConfirmPin('');
@@ -173,7 +173,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
 
   // Shared PIN input classes
   const pinInputClasses =
-    'w-full rounded-xl bg-slate-700 text-white text-center text-xl tracking-[0.3em] p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-500 placeholder:text-sm placeholder:tracking-normal';
+    'w-full rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white text-center text-xl tracking-[0.3em] p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-sm placeholder:tracking-normal';
 
   return (
     <>
@@ -181,10 +181,10 @@ export default function AdminGuard({ children }: AdminGuardProps) {
       <div className="fixed top-4 left-4 z-50 flex items-center gap-2">
         <button
           onClick={isAdmin ? handleLock : handleUnlock}
-          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-slate-800 active:bg-slate-700 shadow-lg"
+          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-white dark:bg-slate-800 active:bg-slate-100 dark:active:bg-slate-700 shadow-lg"
           aria-label={isAdmin ? 'נעל מצב מנהל' : 'פתח מצב מנהל'}
         >
-          <span className="text-xl">{isAdmin ? '🔓' : '🔒'}</span>
+          <span className="text-xl">{isAdmin ? '\uD83D\uDD13' : '\uD83D\uDD12'}</span>
         </button>
 
         {/* Change Password button — only visible when admin is logged in */}
@@ -194,10 +194,10 @@ export default function AdminGuard({ children }: AdminGuardProps) {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             onClick={openChangePassword}
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-slate-800 active:bg-slate-700 shadow-lg"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-white dark:bg-slate-800 active:bg-slate-100 dark:active:bg-slate-700 shadow-lg"
             aria-label="שנה סיסמה"
           >
-            <span className="text-lg">⚙️</span>
+            <span className="text-lg">{'\u2699\uFE0F'}</span>
           </motion.button>
         )}
       </div>
@@ -219,9 +219,9 @@ export default function AdminGuard({ children }: AdminGuardProps) {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-xs bg-slate-800 rounded-2xl p-6 shadow-2xl"
+              className="w-full max-w-xs bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl"
             >
-              <h2 className="text-lg font-bold text-white text-center mb-4">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-4">
                 הזן קוד מנהל
               </h2>
               <input
@@ -232,11 +232,11 @@ export default function AdminGuard({ children }: AdminGuardProps) {
                 onChange={(e) => setPin(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSubmitPin()}
                 placeholder="קוד PIN"
-                className="w-full rounded-xl bg-slate-700 text-white text-center text-2xl tracking-[0.5em] p-4 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-500 placeholder:text-base placeholder:tracking-normal"
+                className="w-full rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white text-center text-2xl tracking-[0.5em] p-4 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-base placeholder:tracking-normal"
                 autoFocus
               />
               {error && (
-                <p className="text-red-400 text-sm text-center mt-2">{error}</p>
+                <p className="text-red-500 dark:text-red-400 text-sm text-center mt-2">{error}</p>
               )}
               <button
                 onClick={handleSubmitPin}
@@ -246,7 +246,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
               </button>
               <button
                 onClick={() => setShowPinModal(false)}
-                className="w-full mt-2 text-slate-400 text-sm p-2 min-h-[44px]"
+                className="w-full mt-2 text-slate-500 dark:text-slate-400 text-sm p-2 min-h-[44px]"
               >
                 ביטול
               </button>
@@ -254,7 +254,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
               {/* Forgot Password link */}
               <button
                 onClick={openForgotPassword}
-                className="w-full mt-1 text-blue-400 text-sm p-2 min-h-[44px] active:text-blue-300"
+                className="w-full mt-1 text-blue-500 dark:text-blue-400 text-sm p-2 min-h-[44px] active:text-blue-400 dark:active:text-blue-300"
               >
                 שכחתי סיסמה
               </button>
@@ -280,14 +280,14 @@ export default function AdminGuard({ children }: AdminGuardProps) {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-xs bg-slate-800 rounded-2xl p-6 shadow-2xl"
+              className="w-full max-w-xs bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl"
             >
-              <h2 className="text-lg font-bold text-white text-center mb-4">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-4">
                 שינוי סיסמה
               </h2>
 
               {/* Current PIN */}
-              <label className="block text-sm text-slate-400 mb-1">
+              <label className="block text-sm text-slate-500 dark:text-slate-400 mb-1">
                 קוד נוכחי
               </label>
               <input
@@ -302,7 +302,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
               />
 
               {/* New PIN */}
-              <label className="block text-sm text-slate-400 mb-1 mt-3">
+              <label className="block text-sm text-slate-500 dark:text-slate-400 mb-1 mt-3">
                 קוד חדש
               </label>
               <input
@@ -316,7 +316,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
               />
 
               {/* Confirm New PIN */}
-              <label className="block text-sm text-slate-400 mb-1 mt-3">
+              <label className="block text-sm text-slate-500 dark:text-slate-400 mb-1 mt-3">
                 אימות קוד חדש
               </label>
               <input
@@ -332,10 +332,10 @@ export default function AdminGuard({ children }: AdminGuardProps) {
 
               {/* Error / Success messages */}
               {cpError && (
-                <p className="text-red-400 text-sm text-center mt-3">{cpError}</p>
+                <p className="text-red-500 dark:text-red-400 text-sm text-center mt-3">{cpError}</p>
               )}
               {cpSuccess && (
-                <p className="text-green-400 text-sm text-center mt-3">{cpSuccess}</p>
+                <p className="text-green-600 dark:text-green-400 text-sm text-center mt-3">{cpSuccess}</p>
               )}
 
               {/* Actions */}
@@ -347,7 +347,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
               </button>
               <button
                 onClick={closeChangePassword}
-                className="w-full mt-2 text-slate-400 text-sm p-2 min-h-[44px]"
+                className="w-full mt-2 text-slate-500 dark:text-slate-400 text-sm p-2 min-h-[44px]"
               >
                 ביטול
               </button>
@@ -373,16 +373,16 @@ export default function AdminGuard({ children }: AdminGuardProps) {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-xs bg-slate-800 rounded-2xl p-6 shadow-2xl"
+              className="w-full max-w-xs bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl"
             >
-              <h2 className="text-lg font-bold text-white text-center mb-4">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-4">
                 שחזור סיסמה
               </h2>
 
               {!fpMasterVerified ? (
                 <>
                   {/* Step 1: Master reset code */}
-                  <label className="block text-sm text-slate-400 mb-1">
+                  <label className="block text-sm text-slate-500 dark:text-slate-400 mb-1">
                     קוד שחזור ראשי
                   </label>
                   <input
@@ -391,12 +391,12 @@ export default function AdminGuard({ children }: AdminGuardProps) {
                     onChange={(e) => setFpMasterCode(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleVerifyMasterCode()}
                     placeholder="הזן קוד שחזור"
-                    className="w-full rounded-xl bg-slate-700 text-white text-center text-lg p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-500 placeholder:text-sm"
+                    className="w-full rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white text-center text-lg p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-sm"
                     autoFocus
                   />
 
                   {fpError && (
-                    <p className="text-red-400 text-sm text-center mt-3">{fpError}</p>
+                    <p className="text-red-500 dark:text-red-400 text-sm text-center mt-3">{fpError}</p>
                   )}
 
                   <button
@@ -409,11 +409,11 @@ export default function AdminGuard({ children }: AdminGuardProps) {
               ) : (
                 <>
                   {/* Step 2: Set new PIN */}
-                  <p className="text-green-400 text-sm text-center mb-3">
+                  <p className="text-green-600 dark:text-green-400 text-sm text-center mb-3">
                     קוד שחזור אומת בהצלחה
                   </p>
 
-                  <label className="block text-sm text-slate-400 mb-1">
+                  <label className="block text-sm text-slate-500 dark:text-slate-400 mb-1">
                     קוד חדש
                   </label>
                   <input
@@ -427,7 +427,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
                     autoFocus
                   />
 
-                  <label className="block text-sm text-slate-400 mb-1 mt-3">
+                  <label className="block text-sm text-slate-500 dark:text-slate-400 mb-1 mt-3">
                     אימות קוד חדש
                   </label>
                   <input
@@ -442,7 +442,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
                   />
 
                   {fpError && (
-                    <p className="text-red-400 text-sm text-center mt-3">{fpError}</p>
+                    <p className="text-red-500 dark:text-red-400 text-sm text-center mt-3">{fpError}</p>
                   )}
 
                   <button
@@ -456,7 +456,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
 
               <button
                 onClick={closeForgotPassword}
-                className="w-full mt-2 text-slate-400 text-sm p-2 min-h-[44px]"
+                className="w-full mt-2 text-slate-500 dark:text-slate-400 text-sm p-2 min-h-[44px]"
               >
                 ביטול
               </button>

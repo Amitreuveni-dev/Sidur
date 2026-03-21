@@ -8,6 +8,7 @@ import ManagerNote from '@/components/ManagerNote';
 import WeekTimeline from '@/components/WeekTimeline';
 import WhatsAppExport from '@/components/WhatsAppExport';
 import ShiftModal from '@/components/ShiftModal';
+import { useTheme } from '@/lib/themeContext';
 import { getEmployees, addEmployee, removeEmployee } from '@/lib/storage';
 import { formatWeekLabel } from '@/lib/weekLabel';
 import type { Employee } from '@/lib/types';
@@ -47,6 +48,7 @@ function getAdjacentWeekId(weekId: string, offset: number): string {
 }
 
 export default function AdminDashboard() {
+  const { theme, toggle } = useTheme();
   const [weekId, setWeekId] = useState(getCurrentWeekId());
   const [fabModalOpen, setFabModalOpen] = useState(false);
   const [showEmployeePanel, setShowEmployeePanel] = useState(false);
@@ -81,9 +83,19 @@ export default function AdminDashboard() {
         <div className="p-4">
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
-            <div>
-              <h1 className="text-xl font-bold text-white">סידור עבודה</h1>
-              <p className="text-sm text-slate-400">ניו דלהי — צור הדסה</p>
+            <div className="flex items-center gap-3">
+              <div>
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white">סידור עבודה</h1>
+                <p className="text-sm text-slate-500 dark:text-slate-400">ניו דלהי — צור הדסה</p>
+              </div>
+              {/* Theme Toggle */}
+              <button
+                onClick={toggle}
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-white dark:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 shadow-lg"
+                aria-label={theme === 'dark' ? 'עבור למצב בהיר' : 'עבור למצב כהה'}
+              >
+                <span className="text-xl">{theme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19'}</span>
+              </button>
             </div>
             <WeatherWidget />
           </div>
@@ -92,28 +104,28 @@ export default function AdminDashboard() {
           <ManagerNote weekId={weekId} isAdmin={isAdmin} />
 
           {/* Week Navigation */}
-          <div className="flex items-center justify-between mb-4 bg-slate-800 rounded-2xl p-3">
+          <div className="flex items-center justify-between mb-4 bg-white dark:bg-slate-800 rounded-2xl p-3 shadow-sm dark:shadow-none">
             <button
               onClick={() => setWeekId(getAdjacentWeekId(weekId, -1))}
-              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-slate-700 text-white"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-slate-100 dark:active:bg-slate-700 text-slate-900 dark:text-white"
               aria-label="שבוע קודם"
             >
-              <span className="text-xl">→</span>
+              <span className="text-xl">{'\u2192'}</span>
             </button>
 
             <div className="text-center">
-              <span className="text-white font-bold text-sm leading-tight">{formatWeekLabel(weekId)}</span>
+              <span className="text-slate-900 dark:text-white font-bold text-sm leading-tight">{formatWeekLabel(weekId)}</span>
               {weekId === getCurrentWeekId() && (
-                <span className="block text-xs text-blue-400 mt-0.5">השבוע</span>
+                <span className="block text-xs text-blue-500 dark:text-blue-400 mt-0.5">השבוע</span>
               )}
             </div>
 
             <button
               onClick={() => setWeekId(getAdjacentWeekId(weekId, 1))}
-              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-slate-700 text-white"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-slate-100 dark:active:bg-slate-700 text-slate-900 dark:text-white"
               aria-label="שבוע הבא"
             >
-              <span className="text-xl">←</span>
+              <span className="text-xl">{'\u2190'}</span>
             </button>
           </div>
 
@@ -123,9 +135,9 @@ export default function AdminDashboard() {
               <WhatsAppExport weekId={weekId} />
               <button
                 onClick={() => setShowEmployeePanel(true)}
-                className="min-h-[44px] flex items-center gap-2 bg-slate-700 text-white rounded-xl px-4 py-2 active:bg-slate-600 font-bold text-sm"
+                className="min-h-[44px] flex items-center gap-2 bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 active:bg-slate-300 dark:active:bg-slate-600 font-bold text-sm"
               >
-                <span>👥</span>
+                <span>{'\uD83D\uDC65'}</span>
                 <span>עובדים</span>
               </button>
             </div>
@@ -172,14 +184,14 @@ export default function AdminDashboard() {
                   exit={{ y: '100%' }}
                   transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                   onClick={(e) => e.stopPropagation()}
-                  className="w-full max-w-md bg-slate-800 rounded-t-3xl p-6 pb-8 max-h-[80vh] overflow-y-auto"
+                  className="w-full max-w-md bg-white dark:bg-slate-800 rounded-t-3xl p-6 pb-8 max-h-[80vh] overflow-y-auto"
                 >
                   {/* Handle bar */}
                   <div className="flex justify-center mb-4">
-                    <div className="w-12 h-1.5 bg-slate-600 rounded-full" />
+                    <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-600 rounded-full" />
                   </div>
 
-                  <h2 className="text-lg font-bold text-white mb-4">ניהול עובדים</h2>
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">ניהול עובדים</h2>
 
                   {/* Add employee */}
                   <div className="flex gap-2 mb-4">
@@ -189,7 +201,7 @@ export default function AdminDashboard() {
                       onChange={(e) => setNewEmployeeName(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleAddEmployee()}
                       placeholder="שם עובד חדש..."
-                      className="flex-1 bg-slate-700 text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-500"
+                      className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                     />
                     <button
                       onClick={handleAddEmployee}
@@ -205,20 +217,20 @@ export default function AdminDashboard() {
                     {employees.map((emp) => (
                       <div
                         key={emp.id}
-                        className="flex items-center justify-between bg-slate-700/50 rounded-xl p-3"
+                        className="flex items-center justify-between bg-slate-100 dark:bg-slate-700/50 rounded-xl p-3"
                       >
-                        <span className="text-white font-bold">{emp.name}</span>
+                        <span className="text-slate-900 dark:text-white font-bold">{emp.name}</span>
                         <button
                           onClick={() => handleRemoveEmployee(emp.id)}
-                          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-slate-600"
+                          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-slate-200 dark:active:bg-slate-600"
                           aria-label={`הסר את ${emp.name}`}
                         >
-                          <span className="text-red-400">✕</span>
+                          <span className="text-red-500 dark:text-red-400">{'\u2715'}</span>
                         </button>
                       </div>
                     ))}
                     {employees.length === 0 && (
-                      <p className="text-sm text-slate-500 text-center py-4">
+                      <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-4">
                         אין עובדים. הוסף עובד ראשון למעלה.
                       </p>
                     )}
@@ -226,7 +238,7 @@ export default function AdminDashboard() {
 
                   <button
                     onClick={() => setShowEmployeePanel(false)}
-                    className="w-full mt-4 text-slate-400 text-sm p-3 min-h-[44px]"
+                    className="w-full mt-4 text-slate-500 dark:text-slate-400 text-sm p-3 min-h-[44px]"
                   >
                     סגור
                   </button>

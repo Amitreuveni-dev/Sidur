@@ -85,15 +85,15 @@ export default function EmployeeView() {
     <div className="p-4">
       {/* Header */}
       <div className="mb-4">
-        <h1 className="text-xl font-bold text-white">סידור עבודה</h1>
-        <p className="text-sm text-slate-400">ניו דלהי — צור הדסה — {weekId}</p>
+        <h1 className="text-xl font-bold text-slate-900 dark:text-white">סידור עבודה</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">ניו דלהי — צור הדסה — {weekId}</p>
       </div>
 
       {/* Manager Note (read-only) */}
       {managerNote && (
-        <div className="bg-slate-800 rounded-2xl p-4 mb-4">
-          <h3 className="text-sm font-bold text-slate-400 mb-2">הודעה מהמנהל</h3>
-          <p className="text-white whitespace-pre-wrap">{managerNote}</p>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 mb-4 shadow-sm dark:shadow-none">
+          <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-2">הודעה מהמנהל</h3>
+          <p className="text-slate-900 dark:text-white whitespace-pre-wrap">{managerNote}</p>
         </div>
       )}
 
@@ -115,14 +115,14 @@ export default function EmployeeView() {
               key={date}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`bg-slate-800 rounded-2xl p-4 ${
+              className={`bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm dark:shadow-none ${
                 isToday ? 'ring-2 ring-blue-500' : ''
               }`}
             >
               {/* Day header */}
               <div className="flex items-center gap-2 mb-3">
-                <h3 className="font-bold text-white text-base">{hebrewDay}</h3>
-                <span className="text-sm text-slate-400">{formattedDate}</span>
+                <h3 className="font-bold text-slate-900 dark:text-white text-base">{hebrewDay}</h3>
+                <span className="text-sm text-slate-500 dark:text-slate-400">{formattedDate}</span>
                 {isToday && (
                   <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">
                     היום
@@ -139,7 +139,7 @@ export default function EmployeeView() {
                       className={`text-xs px-2 py-1 rounded-lg font-bold ${
                         h.isYomTov
                           ? 'bg-orange-500 text-white'
-                          : 'bg-orange-500/20 text-orange-300'
+                          : 'bg-orange-500/20 text-orange-600 dark:text-orange-300'
                       }`}
                     >
                       {h.isYomTov ? 'חג' : ''} {h.hebrew}
@@ -167,27 +167,27 @@ export default function EmployeeView() {
                   return (
                     <div
                       key={shift.id}
-                      className="flex items-center justify-between bg-slate-700/50 rounded-xl p-3"
+                      className="flex items-center justify-between bg-slate-100 dark:bg-slate-700/50 rounded-xl p-3"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-white truncate">
+                          <span className="font-bold text-slate-900 dark:text-white truncate">
                             {employee?.name ?? 'לא ידוע'}
                           </span>
                           {isConfirmed && (
-                            <span className="text-green-400 flex-shrink-0">✓</span>
+                            <span className="text-green-500 dark:text-green-400 flex-shrink-0">{'\u2713'}</span>
                           )}
                         </div>
-                        <div className="text-sm text-slate-300">
-                          {shift.startTime} – {shift.endTime}
+                        <div className="text-sm text-slate-600 dark:text-slate-300">
+                          {shift.startTime} {'\u2013'} {shift.endTime}
                           {shift.role && (
-                            <span className="text-slate-400 mr-2">
+                            <span className="text-slate-500 dark:text-slate-400 mr-2">
                               | {shift.role}
                             </span>
                           )}
                         </div>
                         {shift.note && (
-                          <p className="text-xs text-slate-400 mt-1">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                             {shift.note}
                           </p>
                         )}
@@ -206,7 +206,7 @@ export default function EmployeeView() {
                 })}
 
                 {dayShifts.length === 0 && (
-                  <p className="text-sm text-slate-500 text-center py-2">
+                  <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-2">
                     אין משמרות
                   </p>
                 )}

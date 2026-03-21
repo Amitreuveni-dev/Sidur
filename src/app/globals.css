@@ -2,12 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==============================
+   CSS Custom Properties (Theme)
+   ============================== */
+:root {
+  --bg-primary: #0f172a;      /* slate-900 */
+  --bg-card: #1e293b;         /* slate-800 */
+  --bg-input: #334155;        /* slate-700 */
+  --text-primary: #f8fafc;    /* slate-50 */
+  --text-secondary: #94a3b8;  /* slate-400 */
+  --border: #334155;
+}
+
+html.light {
+  --bg-primary: #f8fafc;      /* slate-50 */
+  --bg-card: #ffffff;
+  --bg-input: #f1f5f9;        /* slate-100 */
+  --text-primary: #0f172a;    /* slate-900 */
+  --text-secondary: #64748b;  /* slate-500 */
+  --border: #e2e8f0;
+}
+
 * {
   box-sizing: border-box;
 }
 
 body {
   direction: rtl;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 /* Prevent zoom on input focus (iOS) */
@@ -27,16 +50,30 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Custom scrollbar for dark theme */
-::-webkit-scrollbar {
+/* Custom scrollbar — dark theme */
+.dark ::-webkit-scrollbar {
   width: 4px;
 }
 
-::-webkit-scrollbar-track {
+.dark ::-webkit-scrollbar-track {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
+.dark ::-webkit-scrollbar-thumb {
   background: #475569;
+  border-radius: 2px;
+}
+
+/* Custom scrollbar — light theme */
+.light ::-webkit-scrollbar {
+  width: 4px;
+}
+
+.light ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
   border-radius: 2px;
 }
