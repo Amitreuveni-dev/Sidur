@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 import {
   isAdminAuthenticated,
   authenticateAdmin,
@@ -42,6 +43,8 @@ export default function AdminGuard({ children }: AdminGuardProps) {
   useEffect(() => {
     setIsAdmin(isAdminAuthenticated());
   }, []);
+
+  useBodyScrollLock(showPinModal || showChangePassword || showForgotPassword);
 
   // --- PIN login handlers ---
   const handleUnlock = useCallback(() => {

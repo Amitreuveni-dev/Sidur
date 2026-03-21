@@ -84,6 +84,7 @@ export default function ShiftModal({
 
   const inputClasses =
     'w-full bg-warm-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500';
+  const dateTimeInputClasses = `${inputClasses} [color-scheme:light] dark:[color-scheme:dark]`;
 
   return (
     <AnimatePresence>
@@ -143,7 +144,7 @@ export default function ShiftModal({
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className={inputClasses}
+                  className={dateTimeInputClasses}
                 />
               </div>
 
@@ -161,7 +162,7 @@ export default function ShiftModal({
                     type="time"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className={inputClasses}
+                    className={dateTimeInputClasses}
                   />
                 </div>
                 <div className="flex-1">
@@ -170,7 +171,7 @@ export default function ShiftModal({
                     type="time"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className={inputClasses}
+                    className={dateTimeInputClasses}
                   />
                 </div>
               </div>

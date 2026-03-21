@@ -26,6 +26,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
@@ -45,7 +46,7 @@ export default function RootLayout({
       </head>
       <body className="bg-warm-100 dark:bg-slate-900 font-rubik text-slate-900 dark:text-white antialiased min-h-screen">
         <ThemeProvider>
-          <main className="mx-auto max-w-md min-h-screen pb-24">
+          <main className="mx-auto max-w-md min-h-screen pb-[calc(6rem+env(safe-area-inset-bottom))]">
             {children}
           </main>
         </ThemeProvider>
