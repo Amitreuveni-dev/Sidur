@@ -1,0 +1,27 @@
+'use client';
+
+interface QuickTemplatesProps {
+  onSelect: (startTime: string, endTime: string) => void;
+}
+
+export default function QuickTemplates({ onSelect }: QuickTemplatesProps) {
+  const templates = [
+    { label: 'בוקר 11:00–17:30', start: '11:00', end: '17:30' },
+    { label: 'ערב 17:30–23:00', start: '17:30', end: '23:00' },
+  ] as const;
+
+  return (
+    <div className="flex gap-2">
+      {templates.map((t) => (
+        <button
+          key={t.label}
+          type="button"
+          onClick={() => onSelect(t.start, t.end)}
+          className="flex-1 bg-slate-600 text-white text-sm rounded-xl p-3 min-h-[44px] active:bg-slate-500 font-bold"
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
