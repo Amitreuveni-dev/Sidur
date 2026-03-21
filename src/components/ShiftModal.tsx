@@ -149,12 +149,14 @@ export default function ShiftModal({
                 {/* Date */}
                 <div>
                   <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">תאריך</label>
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className={dateTimeInputClasses}
-                  />
+                  <div className="h-[44px] overflow-hidden rounded-xl">
+                    <input
+                      type="date"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      className={`${dateTimeInputClasses} max-h-[44px]`}
+                    />
+                  </div>
                 </div>
 
                 {/* Quick Templates */}

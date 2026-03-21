@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
+import { useFocusTrap } from '@/lib/useFocusTrap';
 import {
   isAdminAuthenticated,
   authenticateAdmin,
@@ -45,6 +46,11 @@ export default function AdminGuard({ children }: AdminGuardProps) {
   }, []);
 
   useBodyScrollLock(showPinModal || showChangePassword || showForgotPassword);
+
+  // Focus traps — one per modal so Tab cycles inside the open modal only
+  const pinModalRef = useFocusTrap<HTMLDivElement>(showPinModal);
+  const changePasswordRef = useFocusTrap<HTMLDivElement>(showChangePassword);
+  const forgotPasswordRef = useFocusTrap<HTMLDivElement>(showForgotPassword);
 
   // --- PIN login handlers ---
   const handleUnlock = useCallback(() => {
@@ -224,6 +230,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
             onClick={() => setShowPinModal(false)}
           >
             <motion.div
+              ref={pinModalRef}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
@@ -285,6 +292,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
             onClick={closeChangePassword}
           >
             <motion.div
+              ref={changePasswordRef}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
@@ -378,6 +386,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
             onClick={closeForgotPassword}
           >
             <motion.div
+              ref={forgotPasswordRef}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}

@@ -11,13 +11,13 @@ export default function QuickTemplates({ onSelect }: QuickTemplatesProps) {
   ] as const;
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
       {templates.map((t) => (
         <button
           key={t.label}
           type="button"
           onClick={() => onSelect(t.start, t.end)}
-          className="flex-1 bg-warm-200 dark:bg-slate-600 text-slate-900 dark:text-white text-sm rounded-xl p-3 min-h-[44px] hover:bg-warm-300 dark:hover:bg-slate-500 active:bg-warm-400 dark:active:bg-slate-400 active:scale-[0.97] font-bold transition-all duration-150"
+          className="flex-1 bg-warm-200 dark:bg-slate-600 text-slate-900 dark:text-white text-sm rounded-xl py-1 px-3 min-h-[36px] hover:bg-warm-300 dark:hover:bg-slate-500 active:bg-warm-400 dark:active:bg-slate-400 active:scale-[0.97] font-bold transition-all duration-150"
         >
           {t.label}
         </button>
