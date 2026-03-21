@@ -82,7 +82,7 @@ export default function AdminDashboard() {
 
   return (
     <AdminGuard>
-      {(isAdmin) => (
+      {(isAdmin, adminButtons) => (
         <div className="p-4">
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
@@ -99,6 +99,8 @@ export default function AdminDashboard() {
               >
                 <span className="text-xl">{theme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19'}</span>
               </button>
+              {/* Admin buttons — inline between theme toggle and weather */}
+              {adminButtons}
             </div>
             <WeatherWidget />
           </div>
@@ -156,7 +158,7 @@ export default function AdminDashboard() {
               animate={{ scale: 1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => setFabModalOpen(true)}
-              className="fixed bottom-6 inset-x-0 mx-auto w-14 h-14 bg-blue-500 text-white rounded-full shadow-lg shadow-blue-500/30 flex items-center justify-center text-2xl active:bg-blue-600 z-40"
+              className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] inset-x-0 mx-auto w-14 h-14 bg-blue-500 text-white rounded-full shadow-lg shadow-blue-500/30 flex items-center justify-center text-2xl active:bg-blue-600 z-40"
               aria-label="הוסף משמרת"
             >
               +

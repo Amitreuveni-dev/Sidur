@@ -1,25 +1,22 @@
 import type { HebcalResponse, HolidayInfo } from './types';
 
 let cachedHolidays: Map<string, HolidayInfo[]> | null = null;
-let cacheMonth: number | null = null;
+let cacheYear: number | null = null;
 
-function buildHebcalUrl(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
-  return `https://www.hebcal.com/hebcal?v=1&cfg=json&maj=on&min=on&mod=on&nx=on&year=${year}&month=${month}&ss=on&mf=on&c=on&geo=pos&latitude=31.716&longitude=35.112&tzid=Asia%2FJerusalem`;
+function buildHebcalUrl(year: number): string {
+  return `https://www.hebcal.com/hebcal?v=1&cfg=json&maj=on&min=on&mod=on&nx=on&year=${year}&month=x&ss=on&mf=on&c=on&geo=pos&latitude=31.716&longitude=35.112&tzid=Asia%2FJerusalem`;
 }
 
 export async function fetchHolidays(): Promise<Map<string, HolidayInfo[]>> {
-  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
 
-  // Return cache if same month
-  if (cachedHolidays && cacheMonth === currentMonth) {
+  // Return cache if same year
+  if (cachedHolidays && cacheYear === currentYear) {
     return cachedHolidays;
   }
 
   try {
-    const res = await fetch(buildHebcalUrl());
+    const res = await fetch(buildHebcalUrl(currentYear));
     if (!res.ok) throw new Error(`Hebcal API error: ${res.status}`);
 
     const data = (await res.json()) as HebcalResponse;
@@ -39,7 +36,7 @@ export async function fetchHolidays(): Promise<Map<string, HolidayInfo[]>> {
     }
 
     cachedHolidays = map;
-    cacheMonth = currentMonth;
+    cacheYear = currentYear;
     return map;
   } catch (err) {
     console.error('Failed to fetch Hebcal data:', err);
