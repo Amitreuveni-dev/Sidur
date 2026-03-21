@@ -83,8 +83,8 @@ export default function ShiftModal({
   const isValid = employeeId && date && startTime && endTime;
 
   const inputClasses =
-    'w-full bg-warm-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500';
-  const dateTimeInputClasses = `${inputClasses} [color-scheme:light] dark:[color-scheme:dark]`;
+    'w-full bg-warm-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl p-3 h-[44px] outline-none focus:ring-2 focus:ring-blue-500';
+  const dateTimeInputClasses = `${inputClasses} dark:[color-scheme:dark]`;
 
   return (
     <AnimatePresence>
@@ -101,115 +101,123 @@ export default function ShiftModal({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            drag="y"
+            dragConstraints={{ top: 0 }}
+            dragElastic={0.2}
+            onDragEnd={(_event, info) => {
+              if (info.offset.y > 120 || info.velocity.y > 500) onClose();
+            }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md bg-warm-50 dark:bg-slate-800 rounded-t-3xl overflow-hidden max-h-[90vh]"
+            className="w-full max-w-md bg-warm-50 dark:bg-slate-800 rounded-t-3xl overflow-hidden max-h-[90vh] flex flex-col"
           >
-          <div className="overflow-y-auto max-h-[90vh] p-6 pb-8">
-            {/* Handle bar */}
-            <div className="flex justify-center mb-4">
-              <div className="w-12 h-1.5 bg-warm-300 dark:bg-slate-600 rounded-full" />
+            {/* Non-scrollable: handle bar + title */}
+            <div className="pt-6 px-6 flex-shrink-0">
+              <div className="flex justify-center mb-4">
+                <div className="w-12 h-1.5 bg-warm-300 dark:bg-slate-600 rounded-full" />
+              </div>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
+                {editShift ? 'ערוך משמרת' : 'משמרת חדשה'}
+              </h2>
             </div>
 
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
-              {editShift ? 'ערוך משמרת' : 'משמרת חדשה'}
-            </h2>
+            {/* Scrollable: form fields + submit */}
+            <div className="overflow-y-auto flex-1 px-6 pb-8" style={{ touchAction: 'pan-y' }}>
+              <div className="flex flex-col gap-4">
+                {/* Employee Select */}
+                <div>
+                  <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">עובד</label>
+                  <select
+                    value={employeeId}
+                    onChange={(e) => setEmployeeId(e.target.value)}
+                    className={inputClasses}
+                  >
+                    <option value="">בחר עובד...</option>
+                    {employees.map((emp) => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.name}
+                      </option>
+                    ))}
+                  </select>
+                  {employees.length === 0 && (
+                    <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                      אין עובדים. הוסף עובדים דרך תפריט הניהול.
+                    </p>
+                  )}
+                </div>
 
-            <div className="flex flex-col gap-4">
-              {/* Employee Select */}
-              <div>
-                <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">עובד</label>
-                <select
-                  value={employeeId}
-                  onChange={(e) => setEmployeeId(e.target.value)}
-                  className={inputClasses}
+                {/* Date */}
+                <div>
+                  <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">תאריך</label>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className={dateTimeInputClasses}
+                  />
+                </div>
+
+                {/* Quick Templates */}
+                <div>
+                  <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">תבניות מהירות</label>
+                  <QuickTemplates onSelect={handleTemplateSelect} />
+                </div>
+
+                {/* Times row */}
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">התחלה</label>
+                    <input
+                      type="time"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      className={dateTimeInputClasses}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">סיום</label>
+                    <input
+                      type="time"
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                      className={dateTimeInputClasses}
+                    />
+                  </div>
+                </div>
+
+                {/* Role */}
+                <div>
+                  <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">תפקיד (אופציונלי)</label>
+                  <input
+                    type="text"
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    placeholder="למשל: קופה, מטבח..."
+                    className={`${inputClasses} placeholder:text-slate-400 dark:placeholder:text-slate-500`}
+                  />
+                </div>
+
+                {/* Note */}
+                <div>
+                  <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">הערה (אופציונלי)</label>
+                  <input
+                    type="text"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="הערה חופשית..."
+                    className={`${inputClasses} placeholder:text-slate-400 dark:placeholder:text-slate-500`}
+                  />
+                </div>
+
+                {/* Submit */}
+                <button
+                  onClick={handleSubmit}
+                  disabled={!isValid}
+                  className="w-full bg-blue-500 text-white font-bold rounded-xl p-4 min-h-[44px] hover:bg-blue-600 active:bg-blue-700 active:scale-[0.97] disabled:opacity-40 disabled:hover:bg-blue-500 disabled:active:bg-blue-500 disabled:active:scale-100 mt-2 transition-all duration-150"
                 >
-                  <option value="">בחר עובד...</option>
-                  {employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.name}
-                    </option>
-                  ))}
-                </select>
-                {employees.length === 0 && (
-                  <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                    אין עובדים. הוסף עובדים דרך תפריט הניהול.
-                  </p>
-                )}
+                  {editShift ? 'עדכן משמרת' : 'הוסף משמרת'}
+                </button>
               </div>
-
-              {/* Date */}
-              <div>
-                <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">תאריך</label>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className={dateTimeInputClasses}
-                />
-              </div>
-
-              {/* Quick Templates */}
-              <div>
-                <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">תבניות מהירות</label>
-                <QuickTemplates onSelect={handleTemplateSelect} />
-              </div>
-
-              {/* Times row */}
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">התחלה</label>
-                  <input
-                    type="time"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                    className={dateTimeInputClasses}
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">סיום</label>
-                  <input
-                    type="time"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                    className={dateTimeInputClasses}
-                  />
-                </div>
-              </div>
-
-              {/* Role */}
-              <div>
-                <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">תפקיד (אופציונלי)</label>
-                <input
-                  type="text"
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  placeholder="למשל: קופה, מטבח..."
-                  className={`${inputClasses} placeholder:text-slate-400 dark:placeholder:text-slate-500`}
-                />
-              </div>
-
-              {/* Note */}
-              <div>
-                <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">הערה (אופציונלי)</label>
-                <input
-                  type="text"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="הערה חופשית..."
-                  className={`${inputClasses} placeholder:text-slate-400 dark:placeholder:text-slate-500`}
-                />
-              </div>
-
-              {/* Submit */}
-              <button
-                onClick={handleSubmit}
-                disabled={!isValid}
-                className="w-full bg-blue-500 text-white font-bold rounded-xl p-4 min-h-[44px] hover:bg-blue-600 active:bg-blue-700 active:scale-[0.97] disabled:opacity-40 disabled:hover:bg-blue-500 disabled:active:bg-blue-500 disabled:active:scale-100 mt-2 transition-all duration-150"
-              >
-                {editShift ? 'עדכן משמרת' : 'הוסף משמרת'}
-              </button>
             </div>
-          </div>
           </motion.div>
         </motion.div>
       )}
