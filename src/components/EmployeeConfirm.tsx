@@ -10,6 +10,7 @@ interface EmployeeConfirmProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirmed: () => void;
+  lockedEmployeeId?: string;
 }
 
 export default function EmployeeConfirm({
@@ -17,6 +18,7 @@ export default function EmployeeConfirm({
   isOpen,
   onClose,
   onConfirmed,
+  lockedEmployeeId,
 }: EmployeeConfirmProps) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedId, setSelectedId] = useState('');
@@ -28,12 +30,17 @@ export default function EmployeeConfirm({
     }
   }, [isOpen]);
 
+  const resolvedId = lockedEmployeeId ?? selectedId;
+  const lockedEmployee = lockedEmployeeId
+    ? employees.find((e) => e.id === lockedEmployeeId)
+    : null;
+
   const handleConfirm = useCallback(() => {
-    if (!selectedId) return;
-    confirmShift(shift.id, selectedId);
+    if (!resolvedId) return;
+    confirmShift(shift.id, resolvedId);
     onConfirmed();
     onClose();
-  }, [selectedId, shift.id, onConfirmed, onClose]);
+  }, [resolvedId, shift.id, onConfirmed, onClose]);
 
   return (
     <AnimatePresence>
@@ -55,24 +62,32 @@ export default function EmployeeConfirm({
             <h2 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-1">
               אישור משמרת
             </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-4">מי אתה?</p>
 
-            <select
-              value={selectedId}
-              onChange={(e) => setSelectedId(e.target.value)}
-              className="w-full bg-warm-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 mb-4"
-            >
-              <option value="">בחר את שמך...</option>
-              {employees.map((emp) => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.name}
-                </option>
-              ))}
-            </select>
+            {lockedEmployeeId ? (
+              <p className="text-base text-slate-900 dark:text-white text-center font-bold mb-4">
+                {lockedEmployee?.name ?? ''}
+              </p>
+            ) : (
+              <>
+                <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-4">מי אתה?</p>
+                <select
+                  value={selectedId}
+                  onChange={(e) => setSelectedId(e.target.value)}
+                  className="w-full bg-warm-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 mb-4"
+                >
+                  <option value="">בחר את שמך...</option>
+                  {employees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.name}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
 
             <button
               onClick={handleConfirm}
-              disabled={!selectedId}
+              disabled={!resolvedId}
               className="w-full bg-green-500 text-white font-bold rounded-xl p-3 min-h-[44px] active:bg-green-600 disabled:opacity-40"
             >
               אשר משמרת

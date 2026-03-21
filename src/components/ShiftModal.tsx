@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getEmployees, saveShift } from '@/lib/storage';
+import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 import QuickTemplates from './QuickTemplates';
 import type { Employee, Shift } from '@/lib/types';
 
@@ -23,6 +24,8 @@ export default function ShiftModal({
   editShift,
   defaultDate,
 }: ShiftModalProps) {
+  useBodyScrollLock(isOpen);
+
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [employeeId, setEmployeeId] = useState('');
   const [date, setDate] = useState('');
