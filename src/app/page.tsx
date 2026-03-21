@@ -73,7 +73,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     setEmployees(getEmployees());
-  }, [showEmployeePanel]);
+  }, []);
 
   const handleAddEmployee = useCallback(() => {
     const name = newEmployeeName.trim();
@@ -203,65 +203,75 @@ export default function AdminDashboard() {
                   animate={{ y: 0 }}
                   exit={{ y: '100%' }}
                   transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                  drag="y"
+                  dragConstraints={{ top: 0 }}
+                  dragElastic={0.2}
+                  onDragEnd={(_e, info) => {
+                    if (info.offset.y > 120 || info.velocity.y > 500) setShowEmployeePanel(false);
+                  }}
                   onClick={(e) => e.stopPropagation()}
-                  className="w-full max-w-md bg-warm-50 dark:bg-slate-800 rounded-t-3xl p-6 pb-8 max-h-[80vh] overflow-y-auto"
+                  className="w-full max-w-md bg-warm-50 dark:bg-slate-800 rounded-t-3xl overflow-hidden max-h-[80vh] flex flex-col"
                 >
-                  {/* Handle bar */}
-                  <div className="flex justify-center mb-4">
-                    <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-600 rounded-full" />
+                  {/* Non-scrollable: handle bar + title */}
+                  <div className="pt-6 px-6 flex-shrink-0">
+                    <div className="flex justify-center mb-4">
+                      <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-600 rounded-full" />
+                    </div>
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">ניהול עובדים</h2>
                   </div>
 
-                  <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">ניהול עובדים</h2>
+                  {/* Scrollable content */}
+                  <div className="overflow-y-auto flex-1 px-6 pb-8" style={{ touchAction: 'pan-y' }}>
+                    {/* Add employee */}
+                    <div className="flex gap-2 mb-4">
+                      <input
+                        type="text"
+                        value={newEmployeeName}
+                        onChange={(e) => setNewEmployeeName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddEmployee()}
+                        placeholder="שם עובד חדש..."
+                        className="flex-1 bg-warm-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                      />
+                      <button
+                        onClick={handleAddEmployee}
+                        disabled={!newEmployeeName.trim()}
+                        className="bg-blue-500 text-white font-bold rounded-xl px-4 min-h-[44px] hover:bg-blue-600 active:bg-blue-700 active:scale-[0.97] disabled:opacity-40 disabled:hover:bg-blue-500 transition-all duration-150"
+                      >
+                        הוסף
+                      </button>
+                    </div>
 
-                  {/* Add employee */}
-                  <div className="flex gap-2 mb-4">
-                    <input
-                      type="text"
-                      value={newEmployeeName}
-                      onChange={(e) => setNewEmployeeName(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddEmployee()}
-                      placeholder="שם עובד חדש..."
-                      className="flex-1 bg-warm-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                    />
+                    {/* Employee list */}
+                    <div className="flex flex-col gap-2">
+                      {employees.map((emp) => (
+                        <div
+                          key={emp.id}
+                          className="flex items-center justify-between bg-warm-200 dark:bg-slate-700/50 rounded-xl p-3"
+                        >
+                          <span className="text-slate-900 dark:text-white font-bold">{emp.name}</span>
+                          <button
+                            onClick={() => handleRemoveEmployee(emp.id)}
+                            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-warm-200 dark:hover:bg-slate-600 active:bg-warm-300 dark:active:bg-slate-600 transition-all duration-150"
+                            aria-label={`הסר את ${emp.name}`}
+                          >
+                            <span className="text-red-500 dark:text-red-400">{'\u2715'}</span>
+                          </button>
+                        </div>
+                      ))}
+                      {employees.length === 0 && (
+                        <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-4">
+                          אין עובדים. הוסף עובד ראשון למעלה.
+                        </p>
+                      )}
+                    </div>
+
                     <button
-                      onClick={handleAddEmployee}
-                      disabled={!newEmployeeName.trim()}
-                      className="bg-blue-500 text-white font-bold rounded-xl px-4 min-h-[44px] hover:bg-blue-600 active:bg-blue-700 active:scale-[0.97] disabled:opacity-40 disabled:hover:bg-blue-500 transition-all duration-150"
+                      onClick={() => setShowEmployeePanel(false)}
+                      className="w-full mt-4 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 text-sm p-3 min-h-[44px] transition-colors duration-150"
                     >
-                      הוסף
+                      סגור
                     </button>
                   </div>
-
-                  {/* Employee list */}
-                  <div className="flex flex-col gap-2">
-                    {employees.map((emp) => (
-                      <div
-                        key={emp.id}
-                        className="flex items-center justify-between bg-warm-200 dark:bg-slate-700/50 rounded-xl p-3"
-                      >
-                        <span className="text-slate-900 dark:text-white font-bold">{emp.name}</span>
-                        <button
-                          onClick={() => handleRemoveEmployee(emp.id)}
-                          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-warm-200 dark:hover:bg-slate-600 active:bg-warm-300 dark:active:bg-slate-600 transition-all duration-150"
-                          aria-label={`הסר את ${emp.name}`}
-                        >
-                          <span className="text-red-500 dark:text-red-400">{'\u2715'}</span>
-                        </button>
-                      </div>
-                    ))}
-                    {employees.length === 0 && (
-                      <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-4">
-                        אין עובדים. הוסף עובד ראשון למעלה.
-                      </p>
-                    )}
-                  </div>
-
-                  <button
-                    onClick={() => setShowEmployeePanel(false)}
-                    className="w-full mt-4 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 text-sm p-3 min-h-[44px] transition-colors duration-150"
-                  >
-                    סגור
-                  </button>
                 </motion.div>
               </motion.div>
             )}
