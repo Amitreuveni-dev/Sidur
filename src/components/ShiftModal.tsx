@@ -85,7 +85,7 @@ export default function ShiftModal({
   const inputClasses =
     'w-full bg-warm-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl p-3 h-[44px] outline-none focus:ring-2 focus:ring-blue-500';
   const dateTimeInputClasses =
-    'w-full bg-warm-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl px-3 h-[44px] outline-none focus:ring-2 focus:ring-blue-500 dark:[color-scheme:dark]';
+    'w-full bg-warm-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl px-3 h-[40px] outline-none focus:ring-2 focus:ring-blue-500 dark:[color-scheme:dark]';
 
   return (
     <AnimatePresence>

@@ -61,7 +61,7 @@ export default function WhatsAppExport({ weekId }: WhatsAppExportProps) {
     }
 
     // Build message
-    let msg = `📋 סידור עבודה — שבוע ${dateRange}\n`;
+    let msg = `\uD83D\uDCCB סידור עבודה — שבוע ${dateRange}\n`;
 
     if (weekData.managerNote) {
       msg += `${weekData.managerNote}\n`;
@@ -85,7 +85,7 @@ export default function WhatsAppExport({ weekId }: WhatsAppExportProps) {
 
       for (const shift of dayShifts) {
         const name = empMap.get(shift.employeeId)?.name ?? 'לא ידוע';
-        msg += `• ${name} ${shift.startTime}-${shift.endTime}\n`;
+        msg += `\u2022 ${name} ${shift.startTime}-${shift.endTime}\n`;
       }
 
       msg += '\n';
@@ -96,7 +96,7 @@ export default function WhatsAppExport({ weekId }: WhatsAppExportProps) {
     }
 
     const viewUrl = `${window.location.origin}/view/${weekId}`;
-    msg += `✅ לאישור לחצו: ${viewUrl}`;
+    msg += `\u2705 לאישור לחצו: ${viewUrl}`;
 
     try {
       await navigator.clipboard.writeText(msg);
@@ -115,7 +115,7 @@ export default function WhatsAppExport({ weekId }: WhatsAppExportProps) {
         className="min-h-[44px] min-w-[44px] flex items-center justify-center gap-2 bg-green-600 text-white rounded-xl px-4 py-2 hover:bg-green-700 active:bg-green-800 active:scale-[0.97] font-bold text-sm transition-all duration-150"
         aria-label="שתף בוואטסאפ"
       >
-        <span>📤</span>
+        <span>{'\uD83D\uDCE4'}</span>
         <span>שתף</span>
       </button>
 
@@ -127,7 +127,7 @@ export default function WhatsAppExport({ weekId }: WhatsAppExportProps) {
             exit={{ opacity: 0, y: -10 }}
             className="absolute top-full mt-2 left-0 right-0 bg-green-500 text-white text-xs text-center rounded-lg py-2 px-3 whitespace-nowrap"
           >
-            הועתק! ✓
+            הועתק! {'\u2713'}
           </motion.div>
         )}
       </AnimatePresence>
