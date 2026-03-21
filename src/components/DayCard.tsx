@@ -69,15 +69,15 @@ export default function DayCard({
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`bg-slate-800 rounded-2xl p-4 ${
+      className={`bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm dark:shadow-none ${
         isToday ? 'ring-2 ring-blue-500' : ''
       }`}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <h3 className="font-bold text-white text-base">{hebrewDay}</h3>
-          <span className="text-sm text-slate-400">{formattedDate}</span>
+          <h3 className="font-bold text-slate-900 dark:text-white text-base">{hebrewDay}</h3>
+          <span className="text-sm text-slate-500 dark:text-slate-400">{formattedDate}</span>
           {isToday && (
             <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">
               היום
@@ -88,10 +88,10 @@ export default function DayCard({
         {isAdmin && onAddShift && (
           <button
             onClick={() => onAddShift(date)}
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-slate-700"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:bg-slate-100 dark:active:bg-slate-700"
             aria-label="הוסף משמרת ליום זה"
           >
-            <span className="text-blue-400 text-xl">+</span>
+            <span className="text-blue-500 dark:text-blue-400 text-xl">+</span>
           </button>
         )}
       </div>
@@ -105,7 +105,7 @@ export default function DayCard({
               className={`text-xs px-2 py-1 rounded-lg font-bold ${
                 h.isYomTov
                   ? 'bg-orange-500 text-white'
-                  : 'bg-orange-500/20 text-orange-300'
+                  : 'bg-orange-500/20 text-orange-600 dark:text-orange-300'
               }`}
             >
               {h.isYomTov ? 'חג' : ''} {h.hebrew}
@@ -139,7 +139,7 @@ export default function DayCard({
         </AnimatePresence>
 
         {sortedShifts.length === 0 && (
-          <p className="text-sm text-slate-500 text-center py-2">
+          <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-2">
             אין משמרות
           </p>
         )}

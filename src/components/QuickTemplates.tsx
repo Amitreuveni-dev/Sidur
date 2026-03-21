@@ -6,8 +6,8 @@ interface QuickTemplatesProps {
 
 export default function QuickTemplates({ onSelect }: QuickTemplatesProps) {
   const templates = [
-    { label: 'בוקר 11:00–17:30', start: '11:00', end: '17:30' },
-    { label: 'ערב 17:30–23:00', start: '17:30', end: '23:00' },
+    { label: 'בוקר 11:00\u201317:30', start: '11:00', end: '17:30' },
+    { label: 'ערב 17:30\u201323:00', start: '17:30', end: '23:00' },
   ] as const;
 
   return (
@@ -17,7 +17,7 @@ export default function QuickTemplates({ onSelect }: QuickTemplatesProps) {
           key={t.label}
           type="button"
           onClick={() => onSelect(t.start, t.end)}
-          className="flex-1 bg-slate-600 text-white text-sm rounded-xl p-3 min-h-[44px] active:bg-slate-500 font-bold"
+          className="flex-1 bg-slate-200 dark:bg-slate-600 text-slate-900 dark:text-white text-sm rounded-xl p-3 min-h-[44px] active:bg-slate-300 dark:active:bg-slate-500 font-bold"
         >
           {t.label}
         </button>

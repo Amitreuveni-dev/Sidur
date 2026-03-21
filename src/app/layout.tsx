@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Rubik } from 'next/font/google';
+import { ThemeProvider } from '@/lib/themeContext';
 import './globals.css';
 
 const rubik = Rubik({
@@ -33,14 +34,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="he" dir="rtl" className={rubik.variable}>
+    <html lang="he" dir="rtl" className={`dark ${rubik.variable}`} suppressHydrationWarning>
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
-      <body className="bg-slate-900 font-rubik text-white antialiased min-h-screen">
-        <main className="mx-auto max-w-md min-h-screen pb-24">
-          {children}
-        </main>
+      <body className="bg-slate-50 dark:bg-slate-900 font-rubik text-slate-900 dark:text-white antialiased min-h-screen">
+        <ThemeProvider>
+          <main className="mx-auto max-w-md min-h-screen pb-24">
+            {children}
+          </main>
+        </ThemeProvider>
       </body>
     </html>
   );

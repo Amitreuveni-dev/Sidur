@@ -50,17 +50,17 @@ export default function EmployeeConfirm({
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-xs bg-slate-800 rounded-2xl p-6 shadow-2xl"
+            className="w-full max-w-xs bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl"
           >
-            <h2 className="text-lg font-bold text-white text-center mb-1">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-1">
               אישור משמרת
             </h2>
-            <p className="text-sm text-slate-400 text-center mb-4">מי אתה?</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-4">מי אתה?</p>
 
             <select
               value={selectedId}
               onChange={(e) => setSelectedId(e.target.value)}
-              className="w-full bg-slate-700 text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 mb-4"
+              className="w-full bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 mb-4"
             >
               <option value="">בחר את שמך...</option>
               {employees.map((emp) => (
@@ -80,7 +80,7 @@ export default function EmployeeConfirm({
 
             <button
               onClick={onClose}
-              className="w-full mt-2 text-slate-400 text-sm p-2 min-h-[44px]"
+              className="w-full mt-2 text-slate-500 dark:text-slate-400 text-sm p-2 min-h-[44px]"
             >
               ביטול
             </button>

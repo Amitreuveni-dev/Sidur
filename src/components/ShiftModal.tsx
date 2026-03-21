@@ -79,6 +79,9 @@ export default function ShiftModal({
 
   const isValid = employeeId && date && startTime && endTime;
 
+  const inputClasses =
+    'w-full bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500';
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -95,25 +98,25 @@ export default function ShiftModal({
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md bg-slate-800 rounded-t-3xl p-6 pb-8 max-h-[90vh] overflow-y-auto"
+            className="w-full max-w-md bg-white dark:bg-slate-800 rounded-t-3xl p-6 pb-8 max-h-[90vh] overflow-y-auto"
           >
             {/* Handle bar */}
             <div className="flex justify-center mb-4">
-              <div className="w-12 h-1.5 bg-slate-600 rounded-full" />
+              <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-600 rounded-full" />
             </div>
 
-            <h2 className="text-lg font-bold text-white mb-4">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
               {editShift ? 'ערוך משמרת' : 'משמרת חדשה'}
             </h2>
 
             <div className="flex flex-col gap-4">
               {/* Employee Select */}
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">עובד</label>
+                <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">עובד</label>
                 <select
                   value={employeeId}
                   onChange={(e) => setEmployeeId(e.target.value)}
-                  className="w-full bg-slate-700 text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500"
+                  className={inputClasses}
                 >
                   <option value="">בחר עובד...</option>
                   {employees.map((emp) => (
@@ -123,7 +126,7 @@ export default function ShiftModal({
                   ))}
                 </select>
                 {employees.length === 0 && (
-                  <p className="text-xs text-yellow-400 mt-1">
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
                     אין עובדים. הוסף עובדים דרך תפריט הניהול.
                   </p>
                 )}
@@ -131,64 +134,64 @@ export default function ShiftModal({
 
               {/* Date */}
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">תאריך</label>
+                <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">תאריך</label>
                 <input
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="w-full bg-slate-700 text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500"
+                  className={inputClasses}
                 />
               </div>
 
               {/* Quick Templates */}
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">תבניות מהירות</label>
+                <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">תבניות מהירות</label>
                 <QuickTemplates onSelect={handleTemplateSelect} />
               </div>
 
               {/* Times row */}
               <div className="flex gap-3">
                 <div className="flex-1">
-                  <label className="text-sm text-slate-400 mb-1 block">התחלה</label>
+                  <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">התחלה</label>
                   <input
                     type="time"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full bg-slate-700 text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500"
+                    className={inputClasses}
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="text-sm text-slate-400 mb-1 block">סיום</label>
+                  <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">סיום</label>
                   <input
                     type="time"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="w-full bg-slate-700 text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500"
+                    className={inputClasses}
                   />
                 </div>
               </div>
 
               {/* Role */}
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">תפקיד (אופציונלי)</label>
+                <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">תפקיד (אופציונלי)</label>
                 <input
                   type="text"
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
                   placeholder="למשל: קופה, מטבח..."
-                  className="w-full bg-slate-700 text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-500"
+                  className={`${inputClasses} placeholder:text-slate-400 dark:placeholder:text-slate-500`}
                 />
               </div>
 
               {/* Note */}
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">הערה (אופציונלי)</label>
+                <label className="text-sm text-slate-500 dark:text-slate-400 mb-1 block">הערה (אופציונלי)</label>
                 <input
                   type="text"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="הערה חופשית..."
-                  className="w-full bg-slate-700 text-white rounded-xl p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-500"
+                  className={`${inputClasses} placeholder:text-slate-400 dark:placeholder:text-slate-500`}
                 />
               </div>
 
