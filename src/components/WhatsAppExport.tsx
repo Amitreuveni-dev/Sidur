@@ -79,7 +79,9 @@ export default function WhatsAppExport({ weekId }: WhatsAppExportProps) {
 
       for (const shift of dayShifts) {
         const name = empMap.get(shift.employeeId)?.name ?? 'לא ידוע';
-        msg += `\u2022 ${name} ${shift.startTime}-${shift.endTime}\n`;
+        let line = `\u2022 ${name} ${shift.startTime}-${shift.endTime}`;
+        if (shift.note) line += ` (${shift.note})`;
+        msg += line + '\n';
       }
 
       msg += '\n';

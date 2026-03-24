@@ -3,8 +3,12 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getEmployees, saveShift } from '@/lib/storage';
+import { fetchShabbatTimes } from '@/lib/hebcal';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 import type { Employee } from '@/lib/types';
+
+// Minutes to add to Havdalah time for store opening on Motzaei Shabbat
+const MOTZAEI_OFFSET_MINUTES = 10;
 
 // Day keyword → index (0 = Sunday … 6 = Saturday)
 const DAY_MAP: Record<string, number> = {
@@ -38,6 +42,7 @@ interface ParsedShift {
   dayName: string;
   startTime: string;
   endTime: string;
+  note?: string;
 }
 
 interface ParseResult {
@@ -88,7 +93,20 @@ function norm(token: string): string {
 // Tokens that mean "Saturday evening" (Motzaei Shabbat) on their own.
 const MOTZAEI_TOKENS = new Set(['מוצש', 'motzash']);
 
-function parseText(text: string, employees: Employee[], weekDates: string[]): ParseResult {
+function addMinutes(timeStr: string, minutes: number): string {
+  const [h, m] = timeStr.split(':').map(Number);
+  const total = h * 60 + m + minutes;
+  const hh = Math.floor(total / 60) % 24;
+  const mm = total % 60;
+  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+}
+
+function parseText(
+  text: string,
+  employees: Employee[],
+  weekDates: string[],
+  havdalahTime: string | null
+): ParseResult {
   const shifts: ParsedShift[] = [];
   const warnings: string[] = [];
 
@@ -135,7 +153,11 @@ function parseText(text: string, employees: Employee[], weekDates: string[]): Pa
     let pendingDay: number | null = null;
     let pendingShift: { start: string; end: string } | null = null;
 
-    function commitPair(dayIdx: number, shiftTime: { start: string; end: string }) {
+    function commitPair(
+      dayIdx: number,
+      shiftTime: { start: string; end: string },
+      note?: string
+    ) {
       if (dayIdx === 5) {
         warnings.push(`⚠️ שישי הוא יום מנוחה! (${employee!.name})`);
         return;
@@ -149,6 +171,7 @@ function parseText(text: string, employees: Employee[], weekDates: string[]): Pa
         dayName: HEBREW_DAY_NAMES[dayIdx],
         startTime: shiftTime.start,
         endTime: shiftTime.end,
+        note,
       });
     }
 
@@ -164,8 +187,14 @@ function parseText(text: string, employees: Employee[], weekDates: string[]): Pa
         }
         pendingDay = null;
         pendingShift = null;
-        // מוצ"ש = Saturday evening — commit immediately
-        commitPair(6, { start: '17:30', end: '23:00' });
+        // מוצ"ש = Saturday evening — use real havdalah + offset, or fall back to 17:30
+        const motzaeiStart = havdalahTime
+          ? addMinutes(havdalahTime, MOTZAEI_OFFSET_MINUTES)
+          : '17:30';
+        const motzaeiNote = havdalahTime
+          ? `פתיחה ${MOTZAEI_OFFSET_MINUTES} דק׳ אחרי צאת שבת (${havdalahTime})`
+          : `פתיחה מוצ״ש`;
+        commitPair(6, { start: motzaeiStart, end: '23:00' }, motzaeiNote);
 
       } else if (n in DAY_MAP) {
         if (pendingDay !== null && pendingShift !== null) {
@@ -228,12 +257,27 @@ export default function AIShiftSorter({
   const [text, setText] = useState('');
   const [parsed, setParsed] = useState<ParseResult | null>(null);
   const [imported, setImported] = useState(false);
+  const [parsing, setParsing] = useState(false);
 
-  const handleParse = useCallback(() => {
+  const handleParse = useCallback(async () => {
+    setParsing(true);
     const employees = getEmployees();
     const weekDates = getWeekDates(weekId);
-    setParsed(parseText(text, employees, weekDates));
+    // Fetch havdalah time for this week (cached after first call)
+    const fridayDate = weekDates[5];
+    const shabbatTimes = fridayDate ? await fetchShabbatTimes(fridayDate) : null;
+    if (!shabbatTimes) {
+      // Surface a soft warning but still continue parsing
+      setParsed((prev) => {
+        const base = parseText(text, employees, weekDates, null);
+        base.warnings.unshift('לא הצלחנו למשוך את זמן יציאת שבת — שעת מוצ״ש תהיה 17:30 כברירת מחדל');
+        return base;
+      });
+    } else {
+      setParsed(parseText(text, employees, weekDates, shabbatTimes.havdalah));
+    }
     setImported(false);
+    setParsing(false);
   }, [text, weekId]);
 
   const handleImport = useCallback(() => {
@@ -246,6 +290,7 @@ export default function AIShiftSorter({
         employeeId: s.employeeId,
         startTime: s.startTime,
         endTime: s.endTime,
+        note: s.note,
       });
     }
     setImported(true);
@@ -309,10 +354,10 @@ export default function AIShiftSorter({
                 הדבק טקסט עם שמות עובדים וימים. לדוגמה:
               </p>
               <div className="bg-warm-100 dark:bg-slate-700/50 rounded-xl p-3 mb-3 text-xs text-slate-600 dark:text-slate-300 font-mono leading-relaxed" dir="rtl">
-                <div>יוחאי: ראשון בוקר, שני ערב</div>
-                <div>שירה: שלישי בוקר, חמישי ערב</div>
+                <div>יוחאי: ראשון בוקר שני ערב</div>
+                <div>שירה: שלישי בוקר חמישי מוצש</div>
                 <div className="mt-1 text-slate-400 dark:text-slate-500">
-                  Yochai: Sun morning, Mon evening
+                  Yochai: Sun morning Mon evening
                 </div>
               </div>
 
@@ -330,10 +375,10 @@ export default function AIShiftSorter({
 
               <button
                 onClick={handleParse}
-                disabled={!text.trim()}
+                disabled={!text.trim() || parsing}
                 className="w-full bg-blue-500 text-white font-bold rounded-xl py-2.5 min-h-[44px] hover:bg-blue-600 active:bg-blue-700 active:scale-[0.97] disabled:opacity-40 transition-all duration-150 mb-4"
               >
-                פענח טקסט
+                {parsing ? '⏳ מושך זמני שבת...' : 'פענח טקסט'}
               </button>
 
               {/* Preview */}
@@ -365,14 +410,21 @@ export default function AIShiftSorter({
                         {parsed.shifts.map((s, i) => (
                           <div
                             key={i}
-                            className="flex items-center justify-between bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-lg px-3 py-2"
+                            className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-lg px-3 py-2"
                           >
-                            <span className="font-bold text-slate-900 dark:text-white text-sm">
-                              {s.employeeName}
-                            </span>
-                            <span className="text-xs text-slate-600 dark:text-slate-300">
-                              {s.dayName} · {s.startTime}–{s.endTime}
-                            </span>
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-slate-900 dark:text-white text-sm">
+                                {s.employeeName}
+                              </span>
+                              <span className="text-xs text-slate-600 dark:text-slate-300">
+                                {s.dayName} · {s.startTime}–{s.endTime}
+                              </span>
+                            </div>
+                            {s.note && (
+                              <p className="text-[10px] text-purple-600 dark:text-purple-400 mt-0.5">
+                                {s.note}
+                              </p>
+                            )}
                           </div>
                         ))}
                       </div>
