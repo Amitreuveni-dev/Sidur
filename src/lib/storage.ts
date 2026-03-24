@@ -84,6 +84,17 @@ export function removeShift(id: string): void {
   setItem(KEYS.CONFIRMATIONS, confs);
 }
 
+export function clearWeekShifts(weekId: string): void {
+  const all = getItem<Shift[]>(KEYS.SHIFTS, []);
+  const removed = all.filter((s) => s.weekId === weekId);
+  setItem(KEYS.SHIFTS, all.filter((s) => s.weekId !== weekId));
+  const removedIds = new Set(removed.map((s) => s.id));
+  const confs = getItem<Confirmation[]>(KEYS.CONFIRMATIONS, []).filter(
+    (c) => !removedIds.has(c.shiftId)
+  );
+  setItem(KEYS.CONFIRMATIONS, confs);
+}
+
 // ===== Confirmations =====
 
 export function getConfirmations(weekId?: string): Confirmation[] {

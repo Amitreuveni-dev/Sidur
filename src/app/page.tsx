@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AdminGuard from '@/components/AdminGuard';
 import WeatherWidget from '@/components/WeatherWidget';
@@ -12,7 +12,7 @@ import AIShiftSorter from '@/components/AIShiftSorter';
 import ShiftModal from '@/components/ShiftModal';
 import { useTheme } from '@/lib/themeContext';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
-import { getEmployees, addEmployee, removeEmployee } from '@/lib/storage';
+import { getEmployees, addEmployee, removeEmployee, getShifts, clearWeekShifts } from '@/lib/storage';
 import { formatWeekLabel } from '@/lib/weekLabel';
 import type { Employee } from '@/lib/types';
 
@@ -56,6 +56,8 @@ export default function AdminDashboard() {
   const [fabModalOpen, setFabModalOpen] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showAISorter, setShowAISorter] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showEmployeePanel, setShowEmployeePanel] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [newEmployeeName, setNewEmployeeName] = useState('');
@@ -96,6 +98,29 @@ export default function AdminDashboard() {
 
   const triggerRefresh = useCallback(() => {
     setRefreshKey((k) => k + 1);
+  }, []);
+
+  const handleResetClick = useCallback(() => {
+    if (!confirmReset) {
+      setConfirmReset(true);
+      resetTimerRef.current = setTimeout(() => setConfirmReset(false), 4000);
+    } else {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+      clearWeekShifts(weekId);
+      setConfirmReset(false);
+      triggerRefresh();
+    }
+  }, [confirmReset, weekId, triggerRefresh]);
+
+  // Reset confirm state whenever the week changes
+  useEffect(() => {
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    setConfirmReset(false);
+  }, [weekId]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => { if (resetTimerRef.current) clearTimeout(resetTimerRef.current); };
   }, []);
 
   return (
@@ -176,6 +201,22 @@ export default function AdminDashboard() {
               >
                 <span>🤖</span>
                 <span>AI ייבוא</span>
+              </button>
+              <button
+                onClick={handleResetClick}
+                className={`min-h-[44px] flex items-center gap-2 rounded-xl px-4 py-2 active:scale-[0.97] font-bold text-sm transition-all duration-200 ${
+                  confirmReset
+                    ? 'bg-red-500 text-white hover:bg-red-600 active:bg-red-700'
+                    : 'bg-red-500/15 text-red-600 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-500/25 dark:hover:bg-red-900/50'
+                }`}
+                aria-label="איפוס משמרות השבוע"
+              >
+                <span>🗑️</span>
+                <span>
+                  {confirmReset
+                    ? `למחוק ${getShifts(weekId).length} משמרות?`
+                    : 'איפוס שבוע'}
+                </span>
               </button>
             </div>
           )}
