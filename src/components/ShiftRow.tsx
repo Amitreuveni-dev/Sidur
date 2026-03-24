@@ -8,6 +8,7 @@ interface ShiftRowProps {
   employee: Employee | undefined;
   confirmation: Confirmation | undefined;
   isAdmin: boolean;
+  isMotzaeiShabbat?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
   onCancelConfirm?: () => void;
@@ -18,6 +19,7 @@ export default function ShiftRow({
   employee,
   confirmation,
   isAdmin,
+  isMotzaeiShabbat,
   onEdit,
   onDelete,
   onCancelConfirm,
@@ -38,6 +40,11 @@ export default function ShiftRow({
           </span>
           {confirmation && (
             <span className="text-green-500 dark:text-green-400 text-sm flex-shrink-0">{'\u2713'}</span>
+          )}
+          {isMotzaeiShabbat && (
+            <span className="text-[10px] bg-purple-500/20 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded-md font-bold flex-shrink-0">
+              מוצ״ש
+            </span>
           )}
         </div>
         <div className="text-sm text-slate-600 dark:text-slate-300">

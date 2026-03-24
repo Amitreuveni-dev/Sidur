@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import DayCard from './DayCard';
 import ShiftModal from './ShiftModal';
 import { getShifts, getEmployees, getConfirmations, removeShift, cancelConfirmation } from '@/lib/storage';
-import { fetchHolidays, getHolidaysForDate, isErevChag } from '@/lib/hebcal';
+import { fetchHolidays, fetchShabbatTimes, getHolidaysForDate, isErevChag } from '@/lib/hebcal';
+import type { ShabbatTimes } from '@/lib/hebcal';
 import type { Shift, Employee, Confirmation, HolidayInfo } from '@/lib/types';
 
 interface WeekTimelineProps {
@@ -52,6 +53,7 @@ export default function WeekTimeline({ weekId, isAdmin }: WeekTimelineProps) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [confirmations, setConfirmations] = useState<Confirmation[]>([]);
   const [holidays, setHolidays] = useState<Map<string, HolidayInfo[]>>(new Map());
+  const [shabbatTimes, setShabbatTimes] = useState<ShabbatTimes | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
   const [defaultDate, setDefaultDate] = useState<string | undefined>();
@@ -65,7 +67,10 @@ export default function WeekTimeline({ weekId, isAdmin }: WeekTimelineProps) {
   useEffect(() => {
     reload();
     fetchHolidays().then(setHolidays);
-  }, [reload]);
+    const weekDates = getWeekDates(weekId);
+    const fridayDate = weekDates[5];
+    if (fridayDate) fetchShabbatTimes(fridayDate).then(setShabbatTimes);
+  }, [reload, weekId]);
 
   const dates = getWeekDates(weekId);
 
@@ -106,7 +111,7 @@ export default function WeekTimeline({ weekId, isAdmin }: WeekTimelineProps) {
   return (
     <>
       <div className="flex flex-col gap-3">
-        {dates.map((date) => (
+        {dates.map((date, dateIdx) => (
           <DayCard
             key={date}
             date={date}
@@ -118,6 +123,8 @@ export default function WeekTimeline({ weekId, isAdmin }: WeekTimelineProps) {
             holidays={getHolidaysForDate(date, holidays)}
             isErevChag={isErevChag(date, holidays)}
             isAdmin={isAdmin}
+            candleLightingTime={dateIdx === 5 ? shabbatTimes?.candleLighting : undefined}
+            havdalahTime={dateIdx === 6 ? shabbatTimes?.havdalah : undefined}
             onEditShift={handleEditShift}
             onDeleteShift={handleDeleteShift}
             onAddShift={handleAddShift}

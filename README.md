@@ -128,6 +128,12 @@ public/
 
 ---
 
+- [x] **Morning/Evening split in WeekCalendarModal** — each day-cell is split into ☀ בוקר (startTime < 16:00) / 🌙 ערב (startTime ≥ 16:00) zones with colored labels and a divider
+- [x] **Friday / Shabbat handling** — Friday DayCard disables the + button and shows a "שבת שלום 🕯️" banner with candle-lighting time (fetched from HebCal); Saturday card shows "צאת שבת ✨" time; shifts on Saturday after havdalah are tagged **מוצ״ש** (in both ShiftRow and the WeekCalendarModal grid)
+- [x] **HebCal Shabbat times in WeekCalendarModal** — Friday and Saturday column headers display candle-lighting / havdalah times fetched live from HebCal
+- [x] **AI Shift Sorter** (`AIShiftSorter.tsx`) — "🤖 AI ייבוא" button in admin action bar opens a bottom-sheet; paste text like `יוחאי: ראשון בוקר, שני ערב` or `Yochai: Sun morning, Mon evening`; parser maps Hebrew/English day names + morning/evening keywords → generates previewed Shift objects; Friday mentions are flagged as errors; unrecognised employees surface as warnings; one-tap import saves all parsed shifts
+- [x] **Manager note at end of WhatsApp export** — moved from header position to after the confirmation link (format: `📝 הערת מנהל:\n...`)
+
 ### 🔲 TODO — Next Features
 
 - [ ] **Real PNG icons** — Generate 192x192 and 512x512 from the SVG placeholder

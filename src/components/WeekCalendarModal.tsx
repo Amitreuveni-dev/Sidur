@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getShifts, getEmployees, getConfirmations } from '@/lib/storage';
+import { fetchShabbatTimes } from '@/lib/hebcal';
+import type { ShabbatTimes } from '@/lib/hebcal';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 import type { Shift, Employee, Confirmation } from '@/lib/types';
 
@@ -45,6 +47,43 @@ function formatShortDate(dateStr: string): string {
   return `${d.getDate()}/${d.getMonth() + 1}`;
 }
 
+interface ShiftChipProps {
+  shift: Shift;
+  isConfirmed: boolean;
+  isMotzaei?: boolean;
+}
+
+function ShiftChip({ shift, isConfirmed, isMotzaei }: ShiftChipProps) {
+  return (
+    <div
+      className={`rounded-lg px-1.5 py-1 text-xs leading-tight ${
+        isConfirmed
+          ? 'bg-green-500/15 dark:bg-green-500/20'
+          : 'bg-warm-200 dark:bg-slate-700/60'
+      }`}
+    >
+      <div className="flex items-center gap-1 flex-wrap">
+        {isConfirmed && (
+          <span className="text-green-500 dark:text-green-400 text-[10px]">✓</span>
+        )}
+        <span className="font-bold text-slate-800 dark:text-slate-200 tabular-nums">
+          {shift.startTime}–{shift.endTime}
+        </span>
+        {isMotzaei && (
+          <span className="text-[8px] bg-purple-500/20 text-purple-600 dark:text-purple-300 px-1 rounded font-bold">
+            מוצ״ש
+          </span>
+        )}
+      </div>
+      {shift.role && (
+        <div className="text-slate-500 dark:text-slate-400 text-[10px] truncate max-w-[80px]">
+          {shift.role}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface WeekCalendarModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -63,12 +102,17 @@ export default function WeekCalendarModal({
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [confirmations, setConfirmations] = useState<Confirmation[]>([]);
+  const [shabbatTimes, setShabbatTimes] = useState<ShabbatTimes | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
     setEmployees(getEmployees());
     setShifts(getShifts(weekId));
     setConfirmations(getConfirmations(weekId));
+
+    const weekDates = getWeekDates(weekId);
+    const fridayDate = weekDates[5];
+    if (fridayDate) fetchShabbatTimes(fridayDate).then(setShabbatTimes);
   }, [isOpen, weekId]);
 
   const dates = getWeekDates(weekId);
@@ -138,21 +182,51 @@ export default function WeekCalendarModal({
                       </th>
                       {dates.map((date, i) => {
                         const isToday = date === todayStr;
+                        const isFriday = i === 5;
+                        const isSaturday = i === 6;
                         return (
                           <th
                             key={date}
-                            className={`border border-warm-200 dark:border-slate-700 px-2 py-2 text-center min-w-[90px] ${
-                              isToday
+                            className={`border border-warm-200 dark:border-slate-700 px-2 py-2 text-center min-w-[100px] ${
+                              isFriday
+                                ? 'bg-orange-50 dark:bg-orange-900/10'
+                                : isSaturday
+                                ? 'bg-purple-50 dark:bg-purple-900/10'
+                                : isToday
                                 ? 'bg-blue-500/10 dark:bg-blue-500/20'
                                 : 'bg-warm-100 dark:bg-slate-800'
                             }`}
                           >
-                            <div className={`text-xs font-bold ${isToday ? 'text-blue-500' : 'text-slate-700 dark:text-slate-300'}`}>
+                            <div
+                              className={`text-xs font-bold ${
+                                isFriday
+                                  ? 'text-orange-600 dark:text-orange-400'
+                                  : isSaturday
+                                  ? 'text-purple-600 dark:text-purple-400'
+                                  : isToday
+                                  ? 'text-blue-500'
+                                  : 'text-slate-700 dark:text-slate-300'
+                              }`}
+                            >
                               {HEBREW_DAYS[i]}
                             </div>
-                            <div className={`text-xs ${isToday ? 'text-blue-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                            <div
+                              className={`text-xs ${
+                                isToday ? 'text-blue-400' : 'text-slate-400 dark:text-slate-500'
+                              }`}
+                            >
                               {formatShortDate(date)}
                             </div>
+                            {isFriday && shabbatTimes && (
+                              <div className="text-[9px] text-orange-500 dark:text-orange-400 mt-0.5 leading-none">
+                                🕯 {shabbatTimes.candleLighting}
+                              </div>
+                            )}
+                            {isSaturday && shabbatTimes && (
+                              <div className="text-[9px] text-purple-500 dark:text-purple-400 mt-0.5 leading-none">
+                                ✨ {shabbatTimes.havdalah}
+                              </div>
+                            )}
                           </th>
                         );
                       })}
@@ -165,52 +239,81 @@ export default function WeekCalendarModal({
                         <td className="sticky right-0 z-10 bg-warm-50 dark:bg-slate-900 border border-warm-200 dark:border-slate-700 px-3 py-2 font-bold text-slate-900 dark:text-white text-xs whitespace-nowrap">
                           {emp.name}
                         </td>
-                        {dates.map((date) => {
-                          const dayShifts = shiftMap.get(`${date}|${emp.id}`) ?? [];
+                        {dates.map((date, i) => {
+                          const dayShifts = (shiftMap.get(`${date}|${emp.id}`) ?? []).sort(
+                            (a, b) => a.startTime.localeCompare(b.startTime)
+                          );
                           const isToday = date === todayStr;
+                          const isFriday = i === 5;
+                          const isSaturday = i === 6;
+
+                          const morningShifts = dayShifts.filter((s) => s.startTime < '16:00');
+                          const eveningShifts = dayShifts.filter((s) => s.startTime >= '16:00');
 
                           return (
                             <td
                               key={date}
                               className={`border border-warm-200 dark:border-slate-700 px-1.5 py-1.5 align-top ${
-                                isToday ? 'bg-blue-500/5 dark:bg-blue-500/10' : ''
+                                isFriday
+                                  ? 'bg-orange-50/50 dark:bg-orange-900/5'
+                                  : isSaturday
+                                  ? 'bg-purple-50/50 dark:bg-purple-900/5'
+                                  : isToday
+                                  ? 'bg-blue-500/5 dark:bg-blue-500/10'
+                                  : ''
                               }`}
                             >
-                              {dayShifts.length === 0 ? (
-                                <span className="flex items-center justify-center h-8 text-slate-300 dark:text-slate-600 text-lg">—</span>
-                              ) : (
-                                <div className="flex flex-col gap-1">
-                                  {dayShifts
-                                    .sort((a, b) => a.startTime.localeCompare(b.startTime))
-                                    .map((shift) => {
-                                      const confirmed = confirmationSet.has(`${shift.id}:${emp.id}`);
-                                      return (
-                                        <div
-                                          key={shift.id}
-                                          className={`rounded-lg px-1.5 py-1 text-xs leading-tight ${
-                                            confirmed
-                                              ? 'bg-green-500/15 dark:bg-green-500/20'
-                                              : 'bg-warm-200 dark:bg-slate-700/60'
-                                          }`}
-                                        >
-                                          <div className="flex items-center gap-1">
-                                            {confirmed && (
-                                              <span className="text-green-500 dark:text-green-400 text-[10px]">✓</span>
-                                            )}
-                                            <span className="font-bold text-slate-800 dark:text-slate-200 tabular-nums">
-                                              {shift.startTime}–{shift.endTime}
-                                            </span>
-                                          </div>
-                                          {shift.role && (
-                                            <div className="text-slate-500 dark:text-slate-400 text-[10px] truncate max-w-[80px]">
-                                              {shift.role}
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
+                              {/* Morning zone */}
+                              <div className="pb-0.5">
+                                <div className="text-[8px] font-bold text-amber-600 dark:text-amber-400 mb-0.5">
+                                  ☀ בוקר
                                 </div>
-                              )}
+                                {morningShifts.length === 0 ? (
+                                  <div className="flex items-center justify-center h-5 text-slate-300 dark:text-slate-600 text-xs">
+                                    —
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-col gap-0.5">
+                                    {morningShifts.map((shift) => (
+                                      <ShiftChip
+                                        key={shift.id}
+                                        shift={shift}
+                                        isConfirmed={confirmationSet.has(`${shift.id}:${emp.id}`)}
+                                      />
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Divider */}
+                              <div className="h-px bg-warm-200 dark:bg-slate-600 my-1" />
+
+                              {/* Evening zone */}
+                              <div className="pt-0.5">
+                                <div className="text-[8px] font-bold text-indigo-600 dark:text-indigo-400 mb-0.5">
+                                  🌙 ערב
+                                </div>
+                                {eveningShifts.length === 0 ? (
+                                  <div className="flex items-center justify-center h-5 text-slate-300 dark:text-slate-600 text-xs">
+                                    —
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-col gap-0.5">
+                                    {eveningShifts.map((shift) => (
+                                      <ShiftChip
+                                        key={shift.id}
+                                        shift={shift}
+                                        isConfirmed={confirmationSet.has(`${shift.id}:${emp.id}`)}
+                                        isMotzaei={
+                                          isSaturday &&
+                                          !!shabbatTimes &&
+                                          shift.startTime >= shabbatTimes.havdalah
+                                        }
+                                      />
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             </td>
                           );
                         })}
@@ -222,7 +325,7 @@ export default function WeekCalendarModal({
             </div>
 
             {/* Legend */}
-            <div className="flex-shrink-0 flex items-center gap-4 px-4 py-3 border-t border-warm-200 dark:border-slate-700">
+            <div className="flex-shrink-0 flex items-center flex-wrap gap-4 px-4 py-3 border-t border-warm-200 dark:border-slate-700">
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded bg-green-500/20 border border-green-500/40" />
                 <span className="text-xs text-slate-500 dark:text-slate-400">אושר</span>
@@ -232,8 +335,13 @@ export default function WeekCalendarModal({
                 <span className="text-xs text-slate-500 dark:text-slate-400">טרם אושר</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-slate-300 dark:text-slate-600 text-sm">—</span>
-                <span className="text-xs text-slate-500 dark:text-slate-400">אין משמרת</span>
+                <span className="text-[8px] font-bold text-amber-600 dark:text-amber-400">☀ בוקר</span>
+                <span className="text-slate-300 dark:text-slate-600 mx-1">/</span>
+                <span className="text-[8px] font-bold text-indigo-600 dark:text-indigo-400">🌙 ערב</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[8px] font-bold text-purple-600 dark:text-purple-300 bg-purple-500/20 px-1 rounded">מוצ״ש</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">אחרי צאת שבת</span>
               </div>
             </div>
           </motion.div>

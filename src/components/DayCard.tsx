@@ -22,6 +22,8 @@ interface DayCardProps {
   holidays: HolidayInfo[];
   isErevChag: boolean;
   isAdmin: boolean;
+  candleLightingTime?: string; // "HH:MM" — for Friday
+  havdalahTime?: string;       // "HH:MM" — for Saturday
   onEditShift?: (shift: Shift) => void;
   onDeleteShift?: (shiftId: string) => void;
   onAddShift?: (date: string) => void;
@@ -48,6 +50,8 @@ export default function DayCard({
   holidays,
   isErevChag,
   isAdmin,
+  candleLightingTime,
+  havdalahTime,
   onEditShift,
   onDeleteShift,
   onAddShift,
@@ -57,6 +61,8 @@ export default function DayCard({
   const hebrewDay = HEBREW_DAYS[dayIndex];
   const formattedDate = formatHebrewDate(date);
   const isToday = new Date().toISOString().slice(0, 10) === date;
+  const isFriday = dayIndex === 5;
+  const isSaturday = dayIndex === 6;
 
   const employeeMap = new Map(employees.map((e) => [e.id, e]));
   const confirmationMap = new Map(confirmations.map((c) => [c.shiftId, c]));
@@ -65,6 +71,9 @@ export default function DayCard({
   const sortedShifts = [...shifts].sort((a, b) =>
     a.startTime.localeCompare(b.startTime)
   );
+
+  const isMotzaeiShabbat = (shift: Shift) =>
+    isSaturday && !!havdalahTime && shift.startTime >= havdalahTime;
 
   return (
     <motion.div
@@ -87,7 +96,7 @@ export default function DayCard({
           )}
         </div>
 
-        {isAdmin && onAddShift && (
+        {isAdmin && onAddShift && !isFriday && (
           <button
             onClick={() => onAddShift(date)}
             className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-warm-100 dark:hover:bg-slate-700/60 active:bg-warm-200 dark:active:bg-slate-700 transition-all duration-150"
@@ -97,6 +106,29 @@ export default function DayCard({
           </button>
         )}
       </div>
+
+      {/* Friday — שבת שלום banner */}
+      {isFriday && (
+        <div className="flex flex-col items-center justify-center py-4 mb-3 bg-orange-50 dark:bg-orange-900/10 rounded-2xl">
+          <span className="text-3xl mb-1">🕯️</span>
+          <p className="text-xl font-bold text-orange-700 dark:text-orange-400">שבת שלום</p>
+          {candleLightingTime && (
+            <p className="text-xs text-orange-600 dark:text-orange-500 mt-1 font-medium">
+              הדלקת נרות: {candleLightingTime}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Saturday — havdalah time */}
+      {isSaturday && havdalahTime && (
+        <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-purple-50 dark:bg-purple-900/10 rounded-xl">
+          <span className="text-base">✨</span>
+          <span className="text-xs text-purple-700 dark:text-purple-400 font-bold">
+            צאת שבת: {havdalahTime}
+          </span>
+        </div>
+      )}
 
       {/* Holiday badges */}
       {holidays.length > 0 && (
@@ -134,6 +166,7 @@ export default function DayCard({
               employee={employeeMap.get(shift.employeeId)}
               confirmation={confirmationMap.get(shift.id)}
               isAdmin={isAdmin}
+              isMotzaeiShabbat={isMotzaeiShabbat(shift)}
               onEdit={() => onEditShift?.(shift)}
               onDelete={() => onDeleteShift?.(shift.id)}
               onCancelConfirm={() => onCancelConfirm?.(shift.id, shift.employeeId)}
@@ -141,7 +174,7 @@ export default function DayCard({
           ))}
         </AnimatePresence>
 
-        {sortedShifts.length === 0 && (
+        {sortedShifts.length === 0 && !isFriday && (
           <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-2">
             אין משמרות
           </p>

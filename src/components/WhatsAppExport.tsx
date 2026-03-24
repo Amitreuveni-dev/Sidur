@@ -61,13 +61,7 @@ export default function WhatsAppExport({ weekId }: WhatsAppExportProps) {
     }
 
     // Build message
-    let msg = `\uD83D\uDCCB סידור עבודה — שבוע ${dateRange}\n`;
-
-    if (weekData.managerNote) {
-      msg += `${weekData.managerNote}\n`;
-    }
-
-    msg += '\n';
+    let msg = `\uD83D\uDCCB סידור עבודה — שבוע ${dateRange}\n\n`;
 
     // Sort dates
     const sortedDates = [...shiftsByDate.keys()].sort();
@@ -97,6 +91,10 @@ export default function WhatsAppExport({ weekId }: WhatsAppExportProps) {
 
     const viewUrl = `${window.location.origin}/view/${weekId}`;
     msg += `\u2705 לאישור לחצו: ${viewUrl}`;
+
+    if (weekData.managerNote) {
+      msg += `\n\n\uD83D\uDCDD הערת מנהל:\n${weekData.managerNote}`;
+    }
 
     try {
       await navigator.clipboard.writeText(msg);
