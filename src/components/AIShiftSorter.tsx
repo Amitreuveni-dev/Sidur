@@ -79,6 +79,15 @@ function matchEmployee(name: string, employees: Employee[]): Employee | undefine
   );
 }
 
+// Strips Hebrew gershayim and various quote chars before map lookup.
+// This makes מוצ"ש, מוצ״ש, מוצ"ש, מוצש all normalise to מוצש.
+function norm(token: string): string {
+  return token.replace(/[״""''׳"']/g, '').toLowerCase();
+}
+
+// Tokens that mean "Saturday evening" (Motzaei Shabbat) on their own.
+const MOTZAEI_TOKENS = new Set(['מוצש', 'motzash']);
+
 function parseText(text: string, employees: Employee[], weekDates: string[]): ParseResult {
   const shifts: ParsedShift[] = [];
   const warnings: string[] = [];
@@ -89,7 +98,7 @@ function parseText(text: string, employees: Employee[], weekDates: string[]): Pa
     .filter((l) => l && !l.startsWith('//') && !l.startsWith('#'));
 
   for (const line of lines) {
-    // Detect name: either before ':' or matched against known employees
+    // ── Detect employee name ──────────────────────────────────────────────
     let rawName = '';
     let restLine = line;
 
@@ -99,9 +108,7 @@ function parseText(text: string, employees: Employee[], weekDates: string[]): Pa
       restLine = line.slice(colonIdx + 1).trim();
     } else {
       for (const emp of employees) {
-        const lowerLine = line.toLowerCase();
-        const lowerName = emp.name.toLowerCase();
-        if (lowerLine.startsWith(lowerName)) {
+        if (line.toLowerCase().startsWith(emp.name.toLowerCase())) {
           rawName = emp.name;
           restLine = line.slice(emp.name.length).trim();
           break;
@@ -119,50 +126,85 @@ function parseText(text: string, employees: Employee[], weekDates: string[]): Pa
       continue;
     }
 
-    // Parse comma-separated day-shift pairs
-    const pairs = restLine.split(/[,،]/);
-    for (const pair of pairs) {
-      if (!pair.trim()) continue;
+    // ── Token-by-token state machine ──────────────────────────────────────
+    // Commas and whitespace are both treated as separators.
+    // Works with or without commas between pairs.
+    // Handles both "day shift" and "shift day" ordering.
+    const tokens = restLine.split(/[\s,،]+/).filter(Boolean);
 
-      const tokens = pair.trim().split(/\s+/);
-      let dayIndex = -1;
-      let shiftTime: { start: string; end: string } | undefined;
+    let pendingDay: number | null = null;
+    let pendingShift: { start: string; end: string } | null = null;
 
-      for (const token of tokens) {
-        const lower = token.toLowerCase();
-        if (dayIndex === -1 && lower in DAY_MAP) dayIndex = DAY_MAP[lower];
-        if (!shiftTime && lower in SHIFT_TIMES) shiftTime = SHIFT_TIMES[lower];
+    function commitPair(dayIdx: number, shiftTime: { start: string; end: string }) {
+      if (dayIdx === 5) {
+        warnings.push(`⚠️ שישי הוא יום מנוחה! (${employee!.name})`);
+        return;
       }
-
-      if (dayIndex === -1) {
-        warnings.push(`לא זוהה יום בביטוי: "${pair.trim()}"`);
-        continue;
-      }
-
-      if (dayIndex === 5) {
-        warnings.push(`⚠️ שישי הוא יום מנוחה! (${employee.name})`);
-        continue;
-      }
-
-      if (!shiftTime) {
-        warnings.push(`לא זוהה סוג משמרת (בוקר/ערב) בביטוי: "${pair.trim()}"`);
-        continue;
-      }
-
-      const date = weekDates[dayIndex];
-      if (!date) {
-        warnings.push(`תאריך לא נמצא לביטוי: "${pair.trim()}"`);
-        continue;
-      }
-
+      const date = weekDates[dayIdx];
+      if (!date) return;
       shifts.push({
-        employeeId: employee.id,
-        employeeName: employee.name,
+        employeeId: employee!.id,
+        employeeName: employee!.name,
         date,
-        dayName: HEBREW_DAY_NAMES[dayIndex],
+        dayName: HEBREW_DAY_NAMES[dayIdx],
         startTime: shiftTime.start,
         endTime: shiftTime.end,
       });
+    }
+
+    for (const t of tokens) {
+      const n = norm(t);
+
+      if (MOTZAEI_TOKENS.has(n)) {
+        // Flush any complete pending pair first
+        if (pendingDay !== null && pendingShift !== null) {
+          commitPair(pendingDay, pendingShift);
+        } else if (pendingDay !== null) {
+          warnings.push(`לא זוהה סוג משמרת ליום ${HEBREW_DAY_NAMES[pendingDay]}`);
+        }
+        pendingDay = null;
+        pendingShift = null;
+        // מוצ"ש = Saturday evening — commit immediately
+        commitPair(6, { start: '17:30', end: '23:00' });
+
+      } else if (n in DAY_MAP) {
+        if (pendingDay !== null && pendingShift !== null) {
+          // Previous pair is complete — flush it
+          commitPair(pendingDay, pendingShift);
+          pendingDay = null;
+          pendingShift = null;
+        } else if (pendingDay !== null) {
+          // Day without shift type — warn
+          warnings.push(`לא זוהה סוג משמרת ליום ${HEBREW_DAY_NAMES[pendingDay]}`);
+          pendingDay = null;
+        }
+
+        const newDay = DAY_MAP[n];
+        if (pendingShift !== null) {
+          // Shift-before-day order (e.g. "בוקר שני")
+          commitPair(newDay, pendingShift);
+          pendingShift = null;
+        } else {
+          pendingDay = newDay;
+        }
+
+      } else if (n in SHIFT_TIMES) {
+        if (pendingDay !== null) {
+          // Day-before-shift order (normal: "שני בוקר")
+          commitPair(pendingDay, SHIFT_TIMES[n]);
+          pendingDay = null;
+          pendingShift = null;
+        } else {
+          pendingShift = SHIFT_TIMES[n];
+        }
+      }
+    }
+
+    // Flush anything left after the last token
+    if (pendingDay !== null && pendingShift !== null) {
+      commitPair(pendingDay, pendingShift);
+    } else if (pendingDay !== null) {
+      warnings.push(`לא זוהה סוג משמרת ליום ${HEBREW_DAY_NAMES[pendingDay]}`);
     }
   }
 
