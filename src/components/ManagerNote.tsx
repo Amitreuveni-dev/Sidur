@@ -37,7 +37,10 @@ export default function ManagerNote({ weekId, isAdmin }: ManagerNoteProps) {
 
   return (
     <div className="bg-warm-50 dark:bg-slate-800 rounded-2xl p-4 mb-4 shadow-sm dark:shadow-none">
-      <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-2">הודעה לצוות</h3>
+      <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-1.5">
+        <span>📝</span>
+        <span>הערת מנהל לשבוע</span>
+      </h3>
       {isAdmin ? (
         <>
           <textarea
