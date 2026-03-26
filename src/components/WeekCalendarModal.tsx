@@ -1,12 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getShifts, getEmployees, getConfirmations } from '@/lib/storage';
+import { getShifts, getEmployees, getConfirmations, removeShift } from '@/lib/storage';
 import { fetchShabbatTimes } from '@/lib/hebcal';
 import type { ShabbatTimes } from '@/lib/hebcal';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
+import ShiftModal from './ShiftModal';
+import ManagerNote from './ManagerNote';
 import type { Shift, Employee, Confirmation } from '@/lib/types';
+
+// ───────────────────────────── Constants ─────────────────────────────
 
 const HEBREW_DAYS = [
   'ראשון',
@@ -17,6 +21,8 @@ const HEBREW_DAYS = [
   'שישי',
   'שבת',
 ] as const;
+
+// ───────────────────────────── Helpers ─────────────────────────────
 
 function getWeekDates(weekId: string): string[] {
   const match = weekId.match(/^(\d{4})-W(\d{2})$/);
@@ -47,48 +53,106 @@ function formatShortDate(dateStr: string): string {
   return `${d.getDate()}/${d.getMonth() + 1}`;
 }
 
-interface ShiftChipProps {
-  shift: Shift;
+// ───────────────────────────── Sub-components ─────────────────────────────
+
+interface EmployeePillProps {
+  name: string;
+  variant: 'morning' | 'evening' | 'motzaei';
   isConfirmed: boolean;
-  isMotzaei?: boolean;
+  onRemove: () => void;
+  /** stagger animation delay in seconds */
+  delay: number;
 }
 
-function ShiftChip({ shift, isConfirmed, isMotzaei }: ShiftChipProps) {
+function EmployeePill({ name, variant, isConfirmed, onRemove, delay }: EmployeePillProps) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const colorMap = {
+    morning: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300',
+    evening: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-300',
+    motzaei: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-400/20 dark:text-yellow-300 ring-1 ring-yellow-300/50 dark:ring-yellow-500/30',
+  };
+
+  const confirmedRing = isConfirmed
+    ? 'ring-1 ring-green-400/60 dark:ring-green-500/40'
+    : '';
+
+  const handleTap = useCallback(() => {
+    if (confirmDelete) {
+      onRemove();
+      setConfirmDelete(false);
+    } else {
+      setConfirmDelete(true);
+      // auto-reset after 3 seconds
+      setTimeout(() => setConfirmDelete(false), 3000);
+    }
+  }, [confirmDelete, onRemove]);
+
   return (
-    <div
-      className={`rounded-lg px-1.5 py-1 text-xs leading-tight ${
-        isConfirmed
-          ? 'bg-green-500/15 dark:bg-green-500/20'
-          : 'bg-warm-200 dark:bg-slate-700/60'
-      }`}
+    <motion.button
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay, duration: 0.2 }}
+      onClick={handleTap}
+      className={`
+        inline-flex items-center gap-0.5 px-2 py-0.5 text-xs rounded-full font-medium
+        min-h-[24px] whitespace-nowrap select-none active:scale-95 transition-transform duration-100
+        ${confirmDelete ? 'bg-red-500 !text-white ring-2 ring-red-400' : colorMap[variant]}
+        ${confirmedRing}
+      `}
+      aria-label={confirmDelete ? `אשר מחיקה: ${name}` : name}
     >
-      <div className="flex items-center gap-1 flex-wrap">
-        {isConfirmed && (
-          <span className="text-green-500 dark:text-green-400 text-[10px]">✓</span>
-        )}
-        <span className="font-bold text-slate-800 dark:text-slate-200 tabular-nums">
-          {shift.startTime}–{shift.endTime}
-        </span>
-        {isMotzaei && (
-          <span className="text-[8px] bg-purple-500/20 text-purple-600 dark:text-purple-300 px-1 rounded font-bold">
-            מוצ״ש
-          </span>
-        )}
-      </div>
-      {shift.role && (
-        <div className="text-slate-500 dark:text-slate-400 text-[10px] truncate max-w-[80px]">
-          {shift.role}
-        </div>
+      {isConfirmed && !confirmDelete && (
+        <span className="text-green-500 dark:text-green-400 text-[10px]">&#10003;</span>
       )}
-    </div>
+      {confirmDelete ? (
+        <span className="text-[10px]">&#10005; {name}</span>
+      ) : variant === 'motzaei' ? (
+        <>
+          <span className="text-[10px]">{name}</span>
+          <span className="text-[8px] opacity-70">&#10024;</span>
+        </>
+      ) : (
+        <span className="text-[10px]">{name}</span>
+      )}
+    </motion.button>
   );
 }
+
+interface AddButtonProps {
+  onClick: () => void;
+}
+
+function AddButton({ onClick }: AddButtonProps) {
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className="
+        inline-flex items-center justify-center w-7 h-7 rounded-full
+        border border-dashed border-slate-300 dark:border-slate-600
+        text-slate-400 dark:text-slate-500 hover:border-blue-400 hover:text-blue-400
+        dark:hover:border-blue-500 dark:hover:text-blue-500
+        transition-colors duration-150 text-sm font-bold
+        min-w-[44px] min-h-[44px]
+      "
+      aria-label="הוסף משמרת"
+    >
+      +
+    </button>
+  );
+}
+
+// ───────────────────────────── Main Component ─────────────────────────────
 
 interface WeekCalendarModalProps {
   isOpen: boolean;
   onClose: () => void;
   weekId: string;
   weekLabel: string;
+  onSaved?: () => void;
 }
 
 export default function WeekCalendarModal({
@@ -96,6 +160,7 @@ export default function WeekCalendarModal({
   onClose,
   weekId,
   weekLabel,
+  onSaved,
 }: WeekCalendarModalProps) {
   useBodyScrollLock(isOpen);
 
@@ -104,249 +169,437 @@ export default function WeekCalendarModal({
   const [confirmations, setConfirmations] = useState<Confirmation[]>([]);
   const [shabbatTimes, setShabbatTimes] = useState<ShabbatTimes | null>(null);
 
-  useEffect(() => {
-    if (!isOpen) return;
+  // Add-shift sub-modal state
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [addModalDate, setAddModalDate] = useState<string | undefined>(undefined);
+
+  const reloadData = useCallback(() => {
     setEmployees(getEmployees());
     setShifts(getShifts(weekId));
     setConfirmations(getConfirmations(weekId));
+  }, [weekId]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    reloadData();
     const weekDates = getWeekDates(weekId);
     const fridayDate = weekDates[5];
     if (fridayDate) fetchShabbatTimes(fridayDate).then(setShabbatTimes);
-  }, [isOpen, weekId]);
+  }, [isOpen, weekId, reloadData]);
 
   const dates = getWeekDates(weekId);
-  const confirmationSet = new Set(confirmations.map((c) => `${c.shiftId}:${c.employeeId}`));
-
-  // Build lookup: date+employeeId → shifts[]
-  const shiftMap = new Map<string, Shift[]>();
-  for (const shift of shifts) {
-    const key = `${shift.date}|${shift.employeeId}`;
-    if (!shiftMap.has(key)) shiftMap.set(key, []);
-    shiftMap.get(key)!.push(shift);
-  }
-
   const todayStr = new Date().toISOString().slice(0, 10);
 
+  const confirmationSet = useMemo(
+    () => new Set(confirmations.map((c) => `${c.shiftId}:${c.employeeId}`)),
+    [confirmations],
+  );
+
+  // Employee name map: id → name
+  const empNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const emp of employees) map.set(emp.id, emp.name);
+    return map;
+  }, [employees]);
+
+  // Build shift-centric lookup: date → { morning: Shift[], evening: Shift[] }
+  const shiftsByDate = useMemo(() => {
+    const map = new Map<string, { morning: Shift[]; evening: Shift[] }>();
+    for (const date of dates) {
+      map.set(date, { morning: [], evening: [] });
+    }
+    for (const shift of shifts) {
+      const bucket = map.get(shift.date);
+      if (!bucket) continue;
+      if (shift.startTime < '16:00') {
+        bucket.morning.push(shift);
+      } else {
+        bucket.evening.push(shift);
+      }
+    }
+    // Sort by startTime within each bucket
+    for (const bucket of map.values()) {
+      bucket.morning.sort((a, b) => a.startTime.localeCompare(b.startTime));
+      bucket.evening.sort((a, b) => a.startTime.localeCompare(b.startTime));
+    }
+    return map;
+  }, [shifts, dates]);
+
+  const handleRemoveShift = useCallback(
+    (shiftId: string) => {
+      removeShift(shiftId);
+      reloadData();
+      onSaved?.();
+    },
+    [reloadData, onSaved],
+  );
+
+  const handleAddShift = useCallback((date: string) => {
+    setAddModalDate(date);
+    setAddModalOpen(true);
+  }, []);
+
+  const handleShiftSaved = useCallback(() => {
+    reloadData();
+    onSaved?.();
+  }, [reloadData, onSaved]);
+
+  // Determine if a Saturday shift is motzaei shabbat
+  const isMotzaei = useCallback(
+    (shift: Shift, dayIndex: number): boolean => {
+      return dayIndex === 6 && !!shabbatTimes && shift.startTime >= shabbatTimes.havdalah;
+    },
+    [shabbatTimes],
+  );
+
+  // ───────── Render helpers ─────────
+
+  function renderPills(shiftsArr: Shift[], variant: 'morning' | 'evening', dayIndex: number) {
+    if (shiftsArr.length === 0) return null;
+    return (
+      <div className="flex flex-wrap gap-1">
+        {shiftsArr.map((shift, idx) => {
+          const motzaei = isMotzaei(shift, dayIndex);
+          return (
+            <EmployeePill
+              key={shift.id}
+              name={empNameMap.get(shift.employeeId) ?? '?'}
+              variant={motzaei ? 'motzaei' : variant}
+              isConfirmed={confirmationSet.has(`${shift.id}:${shift.employeeId}`)}
+              onRemove={() => handleRemoveShift(shift.id)}
+              delay={idx * 0.04}
+            />
+          );
+        })}
+      </div>
+    );
+  }
+
+  function renderEmptyState(date: string, isFriday: boolean, placeholderText?: string) {
+    if (isFriday && placeholderText) {
+      return (
+        <span className="text-[10px] text-slate-400 dark:text-slate-500 italic">
+          {placeholderText}
+        </span>
+      );
+    }
+    return (
+      <div className="flex items-center justify-center min-h-[28px] border border-dashed border-slate-200 dark:border-slate-700 rounded-lg">
+        <AddButton onClick={() => handleAddShift(date)} />
+      </div>
+    );
+  }
+
+  // ───────── Main render ─────────
+
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] bg-slate-950/90 flex flex-col"
-          onClick={onClose}
-        >
+    <>
+      <AnimatePresence>
+        {isOpen && (
           <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-            onClick={(e) => e.stopPropagation()}
-            className="flex flex-col bg-warm-50 dark:bg-slate-900 rounded-t-3xl mt-auto max-h-[92vh]"
+            key="week-calendar-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70"
+            onClick={onClose}
           >
-            {/* Handle + Header */}
-            <div className="flex-shrink-0 px-4 pt-4 pb-3 border-b border-warm-200 dark:border-slate-700">
-              <div className="flex justify-center mb-3">
-                <div className="w-10 h-1 bg-warm-300 dark:bg-slate-600 rounded-full" />
-              </div>
-              <div className="flex items-center justify-between">
-                <h2 className="text-base font-bold text-slate-900 dark:text-white">לוח שבועי</h2>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500 dark:text-slate-400">{weekLabel}</span>
-                  <button
-                    onClick={onClose}
-                    className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 hover:bg-warm-200 dark:hover:bg-slate-700 transition-colors"
-                    aria-label="סגור"
-                  >
-                    ✕
-                  </button>
+            <motion.div
+              key="week-calendar-panel"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              drag="y"
+              dragConstraints={{ top: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(_e, info) => {
+                if (info.offset.y > 120 || info.velocity.y > 500) onClose();
+              }}
+              className="w-full bg-warm-50 dark:bg-slate-900 rounded-t-2xl overflow-hidden max-h-[90vh] h-[90vh] flex flex-col"
+            >
+              {/* ───── Handle + Header ───── */}
+              <div className="flex-shrink-0 px-4 pt-6 pb-3 border-b border-warm-200 dark:border-slate-700">
+                <div className="flex justify-center mb-4">
+                  <div className="w-12 h-1.5 bg-warm-300 dark:bg-slate-600 rounded-full" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                    לוח שבועי
+                  </h2>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">{weekLabel}</span>
+                    <button
+                      onClick={onClose}
+                      className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 hover:bg-warm-200 dark:hover:bg-slate-700 transition-colors"
+                      aria-label="סגור"
+                    >
+                      &#10005;
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Scrollable table */}
-            <div className="overflow-auto flex-1" style={{ touchAction: 'pan-x pan-y' }}>
-              {employees.length === 0 ? (
-                <p className="text-center text-slate-400 dark:text-slate-500 py-12 text-sm">
-                  אין עובדים. הוסף עובדים דרך תפריט הניהול.
-                </p>
-              ) : (
-                <table className="border-collapse min-w-max w-full text-sm" dir="rtl">
-                  <thead>
-                    <tr>
-                      {/* Employee name column header */}
-                      <th className="sticky right-0 z-10 bg-warm-100 dark:bg-slate-800 border border-warm-200 dark:border-slate-700 px-3 py-2 text-right text-xs font-bold text-slate-500 dark:text-slate-400 min-w-[80px]">
-                        עובד
-                      </th>
-                      {dates.map((date, i) => {
-                        const isToday = date === todayStr;
-                        const isFriday = i === 5;
-                        const isSaturday = i === 6;
-                        return (
-                          <th
-                            key={date}
-                            className={`border border-warm-200 dark:border-slate-700 px-2 py-2 text-center min-w-[100px] ${
+              {/* ───── Scrollable grid area ───── */}
+              <div
+                className="overflow-y-auto overflow-x-auto flex-1"
+                style={{ touchAction: 'pan-x pan-y' }}
+              >
+                {employees.length === 0 ? (
+                  <p className="text-center text-slate-400 dark:text-slate-500 py-12 text-sm">
+                    אין עובדים. הוסף עובדים דרך תפריט הניהול.
+                  </p>
+                ) : (
+                  <div
+                    dir="rtl"
+                    className="
+                      grid min-w-[640px]
+                      grid-cols-[64px_repeat(7,minmax(80px,1fr))]
+                      grid-rows-[auto_auto_auto]
+                      text-xs
+                    "
+                  >
+                    {/* ═══════ ROW 1: Headers ═══════ */}
+
+                    {/* Sidebar: label cell */}
+                    <div className="sticky end-0 z-20 bg-warm-100 dark:bg-slate-800 border border-warm-200 dark:border-slate-700 flex items-center justify-center px-1 py-2">
+                      <span className="font-bold text-slate-500 dark:text-slate-400 text-[10px] text-center leading-tight">
+                        יום / עובד
+                      </span>
+                    </div>
+
+                    {/* Day header cells */}
+                    {dates.map((date, i) => {
+                      const isToday = date === todayStr;
+                      const isFriday = i === 5;
+                      const isSaturday = i === 6;
+
+                      let bgClass = 'bg-warm-100 dark:bg-slate-800';
+                      if (isFriday) bgClass = 'bg-amber-100/80 dark:bg-amber-900/20';
+                      else if (isSaturday) bgClass = 'bg-purple-100/80 dark:bg-purple-900/20';
+                      else if (isToday) bgClass = 'bg-blue-500/10 dark:bg-blue-500/20';
+
+                      return (
+                        <div
+                          key={`hdr-${date}`}
+                          className={`border border-warm-200 dark:border-slate-700 px-1 py-2 text-center ${bgClass}`}
+                        >
+                          <div
+                            className={`font-bold text-xs ${
                               isFriday
-                                ? 'bg-orange-50 dark:bg-orange-900/10'
+                                ? 'text-orange-600 dark:text-orange-400'
                                 : isSaturday
-                                ? 'bg-purple-50 dark:bg-purple-900/10'
+                                ? 'text-purple-600 dark:text-purple-400'
                                 : isToday
-                                ? 'bg-blue-500/10 dark:bg-blue-500/20'
-                                : 'bg-warm-100 dark:bg-slate-800'
+                                ? 'text-blue-500'
+                                : 'text-slate-700 dark:text-slate-300'
                             }`}
                           >
-                            <div
-                              className={`text-xs font-bold ${
-                                isFriday
-                                  ? 'text-orange-600 dark:text-orange-400'
-                                  : isSaturday
-                                  ? 'text-purple-600 dark:text-purple-400'
-                                  : isToday
-                                  ? 'text-blue-500'
-                                  : 'text-slate-700 dark:text-slate-300'
-                              }`}
-                            >
-                              {HEBREW_DAYS[i]}
-                            </div>
-                            <div
-                              className={`text-xs ${
-                                isToday ? 'text-blue-400' : 'text-slate-400 dark:text-slate-500'
-                              }`}
-                            >
-                              {formatShortDate(date)}
-                            </div>
-                            {isFriday && shabbatTimes && (
-                              <div className="text-[9px] text-orange-500 dark:text-orange-400 mt-0.5 leading-none">
-                                🕯 {shabbatTimes.candleLighting}
-                              </div>
-                            )}
-                            {isSaturday && shabbatTimes && (
-                              <div className="text-[9px] text-purple-500 dark:text-purple-400 mt-0.5 leading-none">
-                                ✨ {shabbatTimes.havdalah}
-                              </div>
-                            )}
-                          </th>
-                        );
-                      })}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {employees.map((emp) => (
-                      <tr key={emp.id}>
-                        {/* Sticky employee name */}
-                        <td className="sticky right-0 z-10 bg-warm-50 dark:bg-slate-900 border border-warm-200 dark:border-slate-700 px-3 py-2 font-bold text-slate-900 dark:text-white text-xs whitespace-nowrap">
-                          {emp.name}
-                        </td>
-                        {dates.map((date, i) => {
-                          const dayShifts = (shiftMap.get(`${date}|${emp.id}`) ?? []).sort(
-                            (a, b) => a.startTime.localeCompare(b.startTime)
-                          );
-                          const isToday = date === todayStr;
-                          const isFriday = i === 5;
-                          const isSaturday = i === 6;
+                            {HEBREW_DAYS[i]}
+                          </div>
+                          <div
+                            className={`text-[10px] ${
+                              isToday ? 'text-blue-400' : 'text-slate-400 dark:text-slate-500'
+                            }`}
+                          >
+                            {formatShortDate(date)}
+                          </div>
 
-                          const morningShifts = dayShifts.filter((s) => s.startTime < '16:00');
-                          const eveningShifts = dayShifts.filter((s) => s.startTime >= '16:00');
-
-                          return (
-                            <td
-                              key={date}
-                              className={`border border-warm-200 dark:border-slate-700 px-1.5 py-1.5 align-top ${
-                                isFriday
-                                  ? 'bg-orange-50/50 dark:bg-orange-900/5'
-                                  : isSaturday
-                                  ? 'bg-purple-50/50 dark:bg-purple-900/5'
-                                  : isToday
-                                  ? 'bg-blue-500/5 dark:bg-blue-500/10'
-                                  : ''
-                              }`}
-                            >
-                              {/* Morning zone */}
-                              <div className="pb-0.5">
-                                <div className="text-[8px] font-bold text-amber-600 dark:text-amber-400 mb-0.5">
-                                  ☀ בוקר
+                          {/* Friday candle lighting */}
+                          {isFriday && (
+                            <div className="mt-0.5 leading-none">
+                              <div className="text-[9px] text-amber-600 dark:text-amber-400 font-bold">
+                                &#128367;&#65039;
+                              </div>
+                              {shabbatTimes && (
+                                <div className="text-[8px] text-amber-500 dark:text-amber-500 mt-0.5">
+                                  {shabbatTimes.candleLighting}
                                 </div>
-                                {morningShifts.length === 0 ? (
-                                  <div className="flex items-center justify-center h-5 text-slate-300 dark:text-slate-600 text-xs">
-                                    —
-                                  </div>
-                                ) : (
-                                  <div className="flex flex-col gap-0.5">
-                                    {morningShifts.map((shift) => (
-                                      <ShiftChip
-                                        key={shift.id}
-                                        shift={shift}
-                                        isConfirmed={confirmationSet.has(`${shift.id}:${emp.id}`)}
-                                      />
-                                    ))}
-                                  </div>
-                                )}
+                              )}
+                            </div>
+                          )}
+
+                          {/* Saturday havdalah */}
+                          {isSaturday && (
+                            <div className="mt-0.5 leading-none">
+                              <div className="text-[9px] text-purple-600 dark:text-purple-400 font-bold">
+                                &#10024;
                               </div>
-
-                              {/* Divider */}
-                              <div className="h-px bg-warm-200 dark:bg-slate-600 my-1" />
-
-                              {/* Evening zone */}
-                              <div className="pt-0.5">
-                                <div className="text-[8px] font-bold text-indigo-600 dark:text-indigo-400 mb-0.5">
-                                  🌙 ערב
+                              {shabbatTimes && (
+                                <div className="text-[8px] text-purple-500 dark:text-purple-400 mt-0.5">
+                                  {shabbatTimes.havdalah}
                                 </div>
-                                {eveningShifts.length === 0 ? (
-                                  <div className="flex items-center justify-center h-5 text-slate-300 dark:text-slate-600 text-xs">
-                                    —
-                                  </div>
-                                ) : (
-                                  <div className="flex flex-col gap-0.5">
-                                    {eveningShifts.map((shift) => (
-                                      <ShiftChip
-                                        key={shift.id}
-                                        shift={shift}
-                                        isConfirmed={confirmationSet.has(`${shift.id}:${emp.id}`)}
-                                        isMotzaei={
-                                          isSaturday &&
-                                          !!shabbatTimes &&
-                                          shift.startTime >= shabbatTimes.havdalah
-                                        }
-                                      />
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
 
-            {/* Legend */}
-            <div className="flex-shrink-0 flex items-center flex-wrap gap-4 px-4 py-3 border-t border-warm-200 dark:border-slate-700">
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded bg-green-500/20 border border-green-500/40" />
-                <span className="text-xs text-slate-500 dark:text-slate-400">אושר</span>
+                    {/* ═══════ ROW 2: Morning (בוקר) ═══════ */}
+
+                    {/* Sidebar label */}
+                    <div className="sticky end-0 z-20 bg-amber-50 dark:bg-amber-950/20 border border-warm-200 dark:border-slate-700 flex items-center justify-center px-1 py-2">
+                      <span className="font-bold text-amber-700 dark:text-amber-400 text-[10px] text-center leading-tight">
+                        &#9728; בוקר
+                      </span>
+                    </div>
+
+                    {/* Morning cells */}
+                    {dates.map((date, i) => {
+                      const isFriday = i === 5;
+                      const isSaturday = i === 6;
+                      const bucket = shiftsByDate.get(date);
+                      const morningShifts = bucket?.morning ?? [];
+
+                      // On Saturday, all shifts are evening (post-havdalah), so morning is always empty
+                      const effectiveShifts = isSaturday ? [] : morningShifts;
+
+                      const bgClass = isFriday
+                        ? 'bg-amber-50/60 dark:bg-amber-950/10'
+                        : isSaturday
+                        ? 'bg-purple-50/40 dark:bg-purple-950/10'
+                        : 'bg-orange-50/30 dark:bg-slate-800/40';
+
+                      return (
+                        <div
+                          key={`morning-${date}`}
+                          className={`border border-warm-200 dark:border-slate-700 px-1.5 py-2 min-h-[48px] ${bgClass}`}
+                        >
+                          {isFriday ? (
+                            <div className="flex flex-col items-center justify-center h-full gap-0.5">
+                              <span className="text-sm">&#128367;&#65039;</span>
+                              <span className="text-[9px] font-bold text-amber-700 dark:text-amber-400">
+                                שבת שלום
+                              </span>
+                            </div>
+                          ) : isSaturday ? (
+                            <div className="flex items-center justify-center h-full">
+                              <span className="text-[9px] text-purple-400 dark:text-purple-500 italic">
+                                שבת
+                              </span>
+                            </div>
+                          ) : effectiveShifts.length > 0 ? (
+                            <div className="flex flex-col gap-1">
+                              {renderPills(effectiveShifts, 'morning', i)}
+                              <AddButton onClick={() => handleAddShift(date)} />
+                            </div>
+                          ) : (
+                            renderEmptyState(date, false)
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {/* ═══════ ROW 3: Evening (ערב) ═══════ */}
+
+                    {/* Sidebar label */}
+                    <div className="sticky end-0 z-20 bg-indigo-50 dark:bg-indigo-950/20 border border-warm-200 dark:border-slate-700 flex items-center justify-center px-1 py-2">
+                      <span className="font-bold text-indigo-700 dark:text-indigo-400 text-[10px] text-center leading-tight">
+                        &#127769; ערב
+                      </span>
+                    </div>
+
+                    {/* Evening cells */}
+                    {dates.map((date, i) => {
+                      const isFriday = i === 5;
+                      const isSaturday = i === 6;
+                      const bucket = shiftsByDate.get(date);
+                      const eveningShifts = bucket?.evening ?? [];
+
+                      // On Saturday, combine morning + evening into this row (all are post-havdalah)
+                      const saturdayAllShifts = isSaturday
+                        ? [...(bucket?.morning ?? []), ...eveningShifts].sort((a, b) =>
+                            a.startTime.localeCompare(b.startTime),
+                          )
+                        : eveningShifts;
+
+                      const effectiveShifts = isSaturday ? saturdayAllShifts : eveningShifts;
+
+                      const bgClass = isFriday
+                        ? 'bg-amber-50/40 dark:bg-amber-950/5'
+                        : isSaturday
+                        ? 'bg-purple-50/60 dark:bg-purple-950/15'
+                        : 'bg-indigo-50/30 dark:bg-slate-800/60';
+
+                      return (
+                        <div
+                          key={`evening-${date}`}
+                          className={`border border-warm-200 dark:border-slate-700 px-1.5 py-2 min-h-[48px] ${bgClass}`}
+                        >
+                          {isFriday ? (
+                            <div className="flex items-center justify-center h-full">
+                              <span className="text-[9px] text-amber-500 dark:text-amber-600 italic">
+                                מנוחה
+                              </span>
+                            </div>
+                          ) : (
+                            <>
+                              {/* Saturday havdalah subtitle */}
+                              {isSaturday && shabbatTimes && (
+                                <div className="text-[8px] text-purple-500 dark:text-purple-400 font-bold mb-1 text-center">
+                                  &#10024; מוצ&quot;ש {shabbatTimes.havdalah}
+                                </div>
+                              )}
+                              {effectiveShifts.length > 0 ? (
+                                <div className="flex flex-col gap-1">
+                                  {renderPills(effectiveShifts, 'evening', i)}
+                                  <AddButton onClick={() => handleAddShift(date)} />
+                                </div>
+                              ) : (
+                                renderEmptyState(date, false)
+                              )}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* ───── Manager's Note ───── */}
+                <div className="px-4 py-3">
+                  <ManagerNote weekId={weekId} isAdmin={true} />
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded bg-warm-200 dark:bg-slate-700" />
-                <span className="text-xs text-slate-500 dark:text-slate-400">טרם אושר</span>
+
+              {/* ───── Legend ───── */}
+              <div className="flex-shrink-0 flex items-center flex-wrap gap-4 px-4 py-3 border-t border-warm-200 dark:border-slate-700" style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-amber-100 dark:bg-amber-500/20 border border-amber-300/60" />
+                  <span className="text-xs text-slate-500 dark:text-slate-400">בוקר</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-indigo-100 dark:bg-indigo-500/20 border border-indigo-300/60" />
+                  <span className="text-xs text-slate-500 dark:text-slate-400">ערב</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-yellow-100 dark:bg-yellow-400/20 border border-yellow-300/60" />
+                  <span className="text-xs text-slate-500 dark:text-slate-400">מוצ&quot;ש</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded bg-green-500/20 border border-green-500/40" />
+                  <span className="text-xs text-slate-500 dark:text-slate-400">אושר</span>
+                </div>
+                <div className="flex items-center gap-1 text-[10px] text-red-400">
+                  לחץ על שם למחיקה
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[8px] font-bold text-amber-600 dark:text-amber-400">☀ בוקר</span>
-                <span className="text-slate-300 dark:text-slate-600 mx-1">/</span>
-                <span className="text-[8px] font-bold text-indigo-600 dark:text-indigo-400">🌙 ערב</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[8px] font-bold text-purple-600 dark:text-purple-300 bg-purple-500/20 px-1 rounded">מוצ״ש</span>
-                <span className="text-xs text-slate-500 dark:text-slate-400">אחרי צאת שבת</span>
-              </div>
-            </div>
+            </motion.div>
           </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        )}
+      </AnimatePresence>
+
+      {/* ───── Embedded ShiftModal for add-shift flow (stacked above calendar z-[100]) ───── */}
+      <ShiftModal
+        isOpen={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+        onSaved={handleShiftSaved}
+        weekId={weekId}
+        defaultDate={addModalDate}
+        zIndexClass="z-[110]"
+      />
+    </>
   );
 }

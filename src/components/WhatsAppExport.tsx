@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getWeekData, getEmployees } from '@/lib/storage';
+import { getWeekData, getEmployees, getShifts } from '@/lib/storage';
 import type { Employee } from '@/lib/types';
 
 const HEBREW_DAYS = [
@@ -17,6 +17,8 @@ const HEBREW_DAYS = [
 
 interface WhatsAppExportProps {
   weekId: string;
+  /** Optional: pass current shift count to avoid re-reading localStorage. Falls back to getShifts(weekId).length. */
+  shiftCount?: number;
 }
 
 function formatDateRange(weekId: string): string {
@@ -42,8 +44,9 @@ function formatDateRange(weekId: string): string {
   return `${fmt(sunday)} - ${fmt(saturday)}`;
 }
 
-export default function WhatsAppExport({ weekId }: WhatsAppExportProps) {
+export default function WhatsAppExport({ weekId, shiftCount }: WhatsAppExportProps) {
   const [copied, setCopied] = useState(false);
+  const hasNoShifts = (shiftCount ?? getShifts(weekId).length) === 0;
 
   const handleExport = useCallback(async () => {
     const weekData = getWeekData(weekId);
@@ -95,7 +98,7 @@ export default function WhatsAppExport({ weekId }: WhatsAppExportProps) {
     msg += `\u2705 לאישור לחצו: ${viewUrl}`;
 
     if (weekData.managerNote) {
-      msg += `\n\n\uD83D\uDCDD הערת מנהל:\n${weekData.managerNote}`;
+      msg += `\n\n─────────────────\n\uD83D\uDCDD הערת מנהל לשבוע:\n${weekData.managerNote}`;
     }
 
     try {
@@ -112,7 +115,12 @@ export default function WhatsAppExport({ weekId }: WhatsAppExportProps) {
     <div className="relative">
       <button
         onClick={handleExport}
-        className="min-h-[44px] min-w-[44px] flex items-center justify-center gap-2 bg-green-600 text-white rounded-xl px-4 py-2 hover:bg-green-700 active:bg-green-800 active:scale-[0.97] font-bold text-sm transition-all duration-150"
+        disabled={hasNoShifts}
+        className={`min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 font-bold text-sm transition-all duration-150 ${
+          hasNoShifts
+            ? 'opacity-40 cursor-not-allowed bg-green-600 text-white'
+            : 'bg-green-600 text-white hover:bg-green-700 active:bg-green-800 active:scale-[0.97]'
+        }`}
         aria-label="שתף בוואטסאפ"
       >
         <span>{'\uD83D\uDCE4'}</span>

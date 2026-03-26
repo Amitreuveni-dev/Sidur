@@ -100,6 +100,10 @@ export default function AdminDashboard() {
     setRefreshKey((k) => k + 1);
   }, []);
 
+  const weekShiftCount = getShifts(weekId).length;
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- refreshKey triggers re-read from localStorage
+  const hasNoShifts = weekShiftCount === 0;
+
   const handleResetClick = useCallback(() => {
     if (!confirmReset) {
       setConfirmReset(true);
@@ -148,9 +152,6 @@ export default function AdminDashboard() {
             <WeatherWidget />
           </div>
 
-          {/* Manager Note */}
-          <ManagerNote weekId={weekId} isAdmin={isAdmin} />
-
           {/* Week Navigation */}
           <div className="flex items-center justify-between mb-4 bg-warm-50 dark:bg-slate-800 rounded-2xl p-3 shadow-sm dark:shadow-none">
             <button
@@ -179,42 +180,45 @@ export default function AdminDashboard() {
 
           {/* Action bar (admin) */}
           {isAdmin && (
-            <div className="flex gap-2 mb-4">
-              <WhatsAppExport weekId={weekId} />
+            <div className="flex flex-wrap gap-2 mb-4">
+              <WhatsAppExport weekId={weekId} shiftCount={weekShiftCount} />
               <button
                 onClick={() => setShowEmployeePanel(true)}
-                className="min-h-[44px] flex items-center gap-2 bg-warm-300 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 hover:bg-warm-400 dark:hover:bg-slate-600 active:bg-slate-300 dark:active:bg-slate-600 active:scale-[0.97] font-bold text-sm transition-all duration-150"
+                className="min-h-[44px] flex items-center gap-1.5 bg-warm-300 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 hover:bg-warm-400 dark:hover:bg-slate-600 active:bg-slate-300 dark:active:bg-slate-600 active:scale-[0.97] font-bold text-sm transition-all duration-150"
               >
                 <span>{'\uD83D\uDC65'}</span>
                 <span>עובדים</span>
               </button>
               <button
                 onClick={() => setShowCalendar(true)}
-                className="min-h-[44px] flex items-center gap-2 bg-warm-300 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 hover:bg-warm-400 dark:hover:bg-slate-600 active:bg-slate-300 dark:active:bg-slate-600 active:scale-[0.97] font-bold text-sm transition-all duration-150"
+                className="min-h-[44px] flex items-center gap-1.5 bg-warm-300 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 hover:bg-warm-400 dark:hover:bg-slate-600 active:bg-slate-300 dark:active:bg-slate-600 active:scale-[0.97] font-bold text-sm transition-all duration-150"
               >
                 <span>📅</span>
                 <span>לוח</span>
               </button>
               <button
                 onClick={() => setShowAISorter(true)}
-                className="min-h-[44px] flex items-center gap-2 bg-warm-300 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 hover:bg-warm-400 dark:hover:bg-slate-600 active:bg-slate-300 dark:active:bg-slate-600 active:scale-[0.97] font-bold text-sm transition-all duration-150"
+                className="min-h-[44px] flex items-center gap-1.5 bg-warm-300 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 hover:bg-warm-400 dark:hover:bg-slate-600 active:bg-slate-300 dark:active:bg-slate-600 active:scale-[0.97] font-bold text-sm transition-all duration-150"
               >
                 <span>🤖</span>
                 <span>AI ייבוא</span>
               </button>
               <button
                 onClick={handleResetClick}
-                className={`min-h-[44px] flex items-center gap-2 rounded-xl px-4 py-2 active:scale-[0.97] font-bold text-sm transition-all duration-200 ${
-                  confirmReset
-                    ? 'bg-red-500 text-white hover:bg-red-600 active:bg-red-700'
-                    : 'bg-red-500/15 text-red-600 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-500/25 dark:hover:bg-red-900/50'
+                disabled={hasNoShifts}
+                className={`min-h-[44px] flex items-center gap-1.5 rounded-xl px-3 py-2 font-bold text-sm transition-all duration-200 ${
+                  hasNoShifts
+                    ? 'opacity-40 cursor-not-allowed bg-red-500/15 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                    : confirmReset
+                      ? 'bg-red-500 text-white hover:bg-red-600 active:bg-red-700 active:scale-[0.97]'
+                      : 'bg-red-500/15 text-red-600 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-500/25 dark:hover:bg-red-900/50 active:scale-[0.97]'
                 }`}
                 aria-label="איפוס משמרות השבוע"
               >
                 <span>🗑️</span>
                 <span>
                   {confirmReset
-                    ? `למחוק ${getShifts(weekId).length} משמרות?`
+                    ? `למחוק ${weekShiftCount} משמרות?`
                     : 'איפוס שבוע'}
                 </span>
               </button>
@@ -223,6 +227,11 @@ export default function AdminDashboard() {
 
           {/* Week Timeline */}
           <WeekTimeline key={refreshKey} weekId={weekId} isAdmin={isAdmin} />
+
+          {/* Manager's Weekly Note — at the bottom */}
+          <div className="mt-4">
+            <ManagerNote weekId={weekId} isAdmin={isAdmin} />
+          </div>
 
           {/* FAB - Add Shift (hidden when keyboard is open) */}
           {isAdmin && !keyboardOpen && (
@@ -261,6 +270,7 @@ export default function AdminDashboard() {
             onClose={() => setShowCalendar(false)}
             weekId={weekId}
             weekLabel={formatWeekLabel(weekId)}
+            onSaved={triggerRefresh}
           />
 
           {/* Employee Management Panel */}
