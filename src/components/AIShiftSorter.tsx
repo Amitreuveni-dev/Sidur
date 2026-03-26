@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getEmployees, getShifts, saveShift, getShiftSlot, getSlotLabel, findDuplicateShift, findOtherSlotShift } from '@/lib/storage';
+import { getEmployees, getShifts, saveShift, removeShift, getShiftSlot, getSlotLabel, findOtherSlotShift } from '@/lib/storage';
 import { fetchShabbatTimes } from '@/lib/hebcal';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 import type { Employee } from '@/lib/types';
@@ -730,47 +730,15 @@ export default function AIShiftSorter({
       result = parseText(text, employees, weekDates, shabbatTimes.havdalah);
     }
 
-    // Pre-check parsed shifts against existing storage for duplicates
-    const existingShifts = getShifts(weekId);
-    const filteredShifts: ParsedShift[] = [];
-    // Also detect intra-batch duplicates during the parse preview phase
-    const batchSeen: { employeeId: string; date: string; slot: string }[] = [];
-    for (let i = 0; i < result.shifts.length; i++) {
-      const s = result.shifts[i];
-      const slot = getShiftSlot(s.startTime);
-      const slotLabel = getSlotLabel(slot);
-
-      // Check against existing shifts in storage
-      const dup = existingShifts.find(
-        (ex) => ex.employeeId === s.employeeId && ex.date === s.date && getShiftSlot(ex.startTime) === slot
-      );
-      if (dup) {
-        result.warnings.push(`משמרת כפולה ל${s.employeeName} ב${s.dayName} ${slotLabel} — דולגה`);
-        continue;
-      }
-
-      // Check against other shifts already accepted in this batch
-      const batchDup = batchSeen.find(
-        (b) => b.employeeId === s.employeeId && b.date === s.date && b.slot === slot
-      );
-      if (batchDup) {
-        result.warnings.push(`משמרת כפולה ל${s.employeeName} ב${s.dayName} ${slotLabel} — דולגה`);
-        continue;
-      }
-
-      // Check for double-shift (different slot, same day) — warn but allow
-      const otherSlotVal = slot === 'morning' ? 'evening' : 'morning';
-      const otherInStorage = existingShifts.find(
-        (ex) => ex.employeeId === s.employeeId && ex.date === s.date && getShiftSlot(ex.startTime) === otherSlotVal
-      );
-      const otherInBatch = batchSeen.find(
-        (b) => b.employeeId === s.employeeId && b.date === s.date && b.slot === otherSlotVal
-      );
-      filteredShifts.push(s);
-      batchSeen.push({ employeeId: s.employeeId, date: s.date, slot });
-    }
-
-    result.shifts = filteredShifts;
+    // Deduplicate within the batch only (same employee + day + slot appearing twice in the text).
+    // Storage duplicates are handled at import time by replacing existing shifts.
+    const batchSeen = new Set<string>();
+    result.shifts = result.shifts.filter((s) => {
+      const key = `${s.employeeId}:${s.date}:${getShiftSlot(s.startTime)}`;
+      if (batchSeen.has(key)) return false;
+      batchSeen.add(key);
+      return true;
+    });
     setParsed(result);
     setImported(false);
     setParsing(false);
@@ -779,43 +747,29 @@ export default function AIShiftSorter({
   const handleImport = useCallback(() => {
     if (!parsed || parsed.shifts.length === 0) return;
 
-    const importWarnings: string[] = [];
-    const doubleMessages: string[] = [];
-    let importedCount = 0;
+    // ── Step 1: Remove existing shifts for every (employee, day) pair in this batch ──
+    // This implements "re-import replaces" — importing the same employee+day twice
+    // updates their schedule instead of creating duplicates.
+    const affectedKeys = new Set(parsed.shifts.map((s) => `${s.employeeId}:${s.date}`));
+    for (const ex of getShifts(weekId)) {
+      if (affectedKeys.has(`${ex.employeeId}:${ex.date}`)) {
+        removeShift(ex.id);
+      }
+    }
 
-    // We need to track shifts we've already saved in THIS import batch
-    // to detect duplicates within the batch itself
+    // ── Step 2: Save all parsed shifts ──
+    const doubleMessages: string[] = [];
     const batchSaved: { employeeId: string; date: string; startTime: string }[] = [];
 
     for (const s of parsed.shifts) {
       const slot = getShiftSlot(s.startTime);
-      const slotLabel = getSlotLabel(slot);
-      const dayName = s.dayName;
-
-      // Check against existing shifts in storage
-      const existingDup = findDuplicateShift(weekId, s.employeeId, s.date, s.startTime);
-      if (existingDup) {
-        importWarnings.push(`משמרת כפולה ל${s.employeeName} ב${dayName} ${slotLabel} — דולגה`);
-        continue;
-      }
-
-      // Check against other shifts in THIS batch (same employee + day + slot)
-      const batchDup = batchSaved.find(
-        (b) => b.employeeId === s.employeeId && b.date === s.date && getShiftSlot(b.startTime) === slot
-      );
-      if (batchDup) {
-        importWarnings.push(`משמרת כפולה ל${s.employeeName} ב${dayName} ${slotLabel} — דולגה`);
-        continue;
-      }
-
-      // Check for double shift (different slot same day) — warn but allow
-      const otherSlot = findOtherSlotShift(weekId, s.employeeId, s.date, s.startTime);
-      // Also check within batch
       const otherSlotVal = slot === 'morning' ? 'evening' : 'morning';
       const batchOther = batchSaved.find(
         (b) => b.employeeId === s.employeeId && b.date === s.date && getShiftSlot(b.startTime) === otherSlotVal
       );
-      if (otherSlot || batchOther) {
+      // Also check newly-added shifts in storage for the other slot (from this same batch)
+      const storageOther = findOtherSlotShift(weekId, s.employeeId, s.date, s.startTime);
+      if (batchOther || storageOther) {
         doubleMessages.push(`שים לב: ${s.employeeName} עובד היום כפול (בוקר וערב)`);
       }
 
@@ -829,52 +783,28 @@ export default function AIShiftSorter({
         note: s.note,
       });
       batchSaved.push({ employeeId: s.employeeId, date: s.date, startTime: s.startTime });
-      importedCount++;
     }
 
-    // Append import-time warnings to the parsed result so they show in the warnings panel
-    if (importWarnings.length > 0) {
-      setParsed((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          shifts: prev.shifts.filter((s) => {
-            const slot = getShiftSlot(s.startTime);
-            const slotLabel = getSlotLabel(slot);
-            const dupMsg = `משמרת כפולה ל${s.employeeName} ב${s.dayName} ${slotLabel} — דולגה`;
-            return !importWarnings.includes(dupMsg);
-          }),
-          warnings: [...prev.warnings, ...importWarnings],
-        };
-      });
-    }
-
-    // Show double-shift toasts
+    // ── Step 3: Show double-shift toasts ──
     if (doubleMessages.length > 0) {
-      // Deduplicate
       const unique = [...new Set(doubleMessages)];
       setDoubleShiftToasts(unique);
       setShowDoubleToast(true);
       setTimeout(() => setShowDoubleToast(false), 3500);
     }
 
-    if (importedCount > 0) {
-      setImported(true);
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 2500);
-      setTimeout(() => {
-        onImported();
-        onClose();
-        setText('');
-        setParsed(null);
-        setImported(false);
-        setShowDoubleToast(false);
-        setDoubleShiftToasts([]);
-      }, 800);
-    } else {
-      // All shifts were duplicates — stay open, don't show success
+    setImported(true);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2500);
+    setTimeout(() => {
+      onImported();
+      onClose();
+      setText('');
+      setParsed(null);
       setImported(false);
-    }
+      setShowDoubleToast(false);
+      setDoubleShiftToasts([]);
+    }, 800);
   }, [parsed, weekId, onImported, onClose]);
 
   return (
@@ -982,27 +912,31 @@ export default function AIShiftSorter({
                         <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
                           ✓ {parsed.shifts.length} משמרות זוהו:
                         </p>
-                        <div className="flex flex-col gap-1.5">
-                          {parsed.shifts.map((s, i) => (
-                            <div
-                              key={i}
-                              className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-lg px-3 py-2"
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="font-bold text-slate-900 dark:text-white text-sm">
-                                  {s.employeeName}
-                                </span>
-                                <span className="text-xs text-slate-600 dark:text-slate-300">
-                                  {s.dayName} · {s.startTime}–{s.endTime}
-                                </span>
+                        {/* overflow-x-auto + touch-pan-x: horizontal scroll without
+                            triggering pull-to-refresh on mobile */}
+                        <div className="overflow-x-auto" style={{ touchAction: 'pan-x' }}>
+                          <div className="flex flex-col gap-1.5 min-w-[280px]">
+                            {parsed.shifts.map((s, i) => (
+                              <div
+                                key={i}
+                                className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-lg px-3 py-2"
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="font-bold text-slate-900 dark:text-white text-sm min-w-[80px] truncate">
+                                    {s.employeeName}
+                                  </span>
+                                  <span className="text-xs text-slate-600 dark:text-slate-300 shrink-0">
+                                    {s.dayName} · {s.startTime}–{s.endTime}
+                                  </span>
+                                </div>
+                                {s.note && (
+                                  <p className="text-[10px] text-purple-600 dark:text-purple-400 mt-0.5 truncate">
+                                    {s.note}
+                                  </p>
+                                )}
                               </div>
-                              {s.note && (
-                                <p className="text-[10px] text-purple-600 dark:text-purple-400 mt-0.5">
-                                  {s.note}
-                                </p>
-                              )}
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
                       </div>
                     ) : (
