@@ -59,55 +59,35 @@ interface EmployeePillProps {
   name: string;
   variant: 'morning' | 'evening' | 'motzaei';
   isConfirmed: boolean;
-  onRemove: () => void;
   /** stagger animation delay in seconds */
   delay: number;
 }
 
-function EmployeePill({ name, variant, isConfirmed, onRemove, delay }: EmployeePillProps) {
-  const [confirmDelete, setConfirmDelete] = useState(false);
-
+function EmployeePill({ name, variant, isConfirmed, delay }: EmployeePillProps) {
   const colorMap = {
     morning: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300',
     evening: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-300',
     motzaei: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-400/20 dark:text-yellow-300 ring-1 ring-yellow-300/50 dark:ring-yellow-500/30',
   };
 
-  const confirmedRing = isConfirmed
-    ? 'ring-1 ring-green-400/60 dark:ring-green-500/40'
-    : '';
-
-  const handleTap = useCallback(() => {
-    if (confirmDelete) {
-      onRemove();
-      setConfirmDelete(false);
-    } else {
-      setConfirmDelete(true);
-      // auto-reset after 3 seconds
-      setTimeout(() => setConfirmDelete(false), 3000);
-    }
-  }, [confirmDelete, onRemove]);
+  const confirmedRing = isConfirmed ? 'ring-1 ring-green-400/60 dark:ring-green-500/40' : '';
 
   return (
-    <motion.button
+    <motion.div
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.2 }}
-      onClick={handleTap}
       className={`
         inline-flex items-center gap-0.5 px-2 py-0.5 text-xs rounded-full font-medium
-        min-h-[24px] whitespace-nowrap select-none active:scale-95 transition-transform duration-100
-        ${confirmDelete ? 'bg-red-500 !text-white ring-2 ring-red-400' : colorMap[variant]}
-        ${confirmedRing}
+        min-h-[24px] whitespace-nowrap select-none
+        ${colorMap[variant]} ${confirmedRing}
       `}
-      aria-label={confirmDelete ? `אשר מחיקה: ${name}` : name}
+      aria-label={name}
     >
-      {isConfirmed && !confirmDelete && (
+      {isConfirmed && (
         <span className="text-green-500 dark:text-green-400 text-[10px]">&#10003;</span>
       )}
-      {confirmDelete ? (
-        <span className="text-[10px]">&#10005; {name}</span>
-      ) : variant === 'motzaei' ? (
+      {variant === 'motzaei' ? (
         <>
           <span className="text-[10px]">{name}</span>
           <span className="text-[8px] opacity-70">&#10024;</span>
@@ -115,7 +95,7 @@ function EmployeePill({ name, variant, isConfirmed, onRemove, delay }: EmployeeP
       ) : (
         <span className="text-[10px]">{name}</span>
       )}
-    </motion.button>
+    </motion.div>
   );
 }
 
@@ -266,7 +246,6 @@ export default function WeekCalendarModal({
               name={empNameMap.get(shift.employeeId) ?? '?'}
               variant={motzaei ? 'motzaei' : variant}
               isConfirmed={confirmationSet.has(`${shift.id}:${shift.employeeId}`)}
-              onRemove={() => handleRemoveShift(shift.id)}
               delay={idx * 0.04}
             />
           );
@@ -362,8 +341,8 @@ export default function WeekCalendarModal({
                   >
                     {/* ═══════ ROW 1: Headers ═══════ */}
 
-                    {/* Sidebar: label cell */}
-                    <div className="sticky end-0 z-20 bg-warm-100 dark:bg-slate-800 border border-warm-200 dark:border-slate-700 flex items-center justify-center px-1 py-2">
+                    {/* Sidebar: label cell — sticky right (RTL) + sticky top */}
+                    <div className="sticky end-0 top-0 z-30 bg-warm-100 dark:bg-slate-800 border border-warm-200 dark:border-slate-700 flex items-center justify-center px-1 py-2">
                       <span className="font-bold text-slate-500 dark:text-slate-400 text-[10px] text-center leading-tight">
                         יום / עובד
                       </span>
@@ -383,7 +362,7 @@ export default function WeekCalendarModal({
                       return (
                         <div
                           key={`hdr-${date}`}
-                          className={`border border-warm-200 dark:border-slate-700 px-1 py-2 text-center ${bgClass}`}
+                          className={`sticky top-0 z-20 border border-warm-200 dark:border-slate-700 px-1 py-2 text-center ${bgClass}`}
                         >
                           <div
                             className={`font-bold text-xs ${
@@ -558,10 +537,11 @@ export default function WeekCalendarModal({
                   </div>
                 )}
 
-                {/* ───── Manager's Note ───── */}
-                <div className="px-4 py-3">
-                  <ManagerNote weekId={weekId} isAdmin={true} />
-                </div>
+              </div>
+
+              {/* ───── Manager's Note — outside scroll, full width ───── */}
+              <div className="flex-shrink-0 w-full max-w-2xl mx-auto px-4 py-3 border-t border-warm-200 dark:border-slate-700">
+                <ManagerNote weekId={weekId} isAdmin={true} />
               </div>
 
               {/* ───── Legend ───── */}
@@ -581,9 +561,6 @@ export default function WeekCalendarModal({
                 <div className="flex items-center gap-1.5">
                   <div className="w-3 h-3 rounded bg-green-500/20 border border-green-500/40" />
                   <span className="text-xs text-slate-500 dark:text-slate-400">אושר</span>
-                </div>
-                <div className="flex items-center gap-1 text-[10px] text-red-400">
-                  לחץ על שם למחיקה
                 </div>
               </div>
             </motion.div>
