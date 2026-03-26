@@ -55,6 +55,63 @@ export function removeEmployee(id: string): void {
   saveEmployees(employees);
 }
 
+// ===== Shift Slot Helpers =====
+
+/** Morning slot = startTime before "16:00", Evening slot = "16:00" or later */
+export type ShiftSlot = 'morning' | 'evening';
+
+export function getShiftSlot(startTime: string): ShiftSlot {
+  return startTime < '16:00' ? 'morning' : 'evening';
+}
+
+export function getSlotLabel(slot: ShiftSlot): string {
+  return slot === 'morning' ? 'בוקר' : 'ערב';
+}
+
+/**
+ * Returns the existing shift that conflicts (same employee + day + slot),
+ * or undefined if no duplicate exists.
+ * Optionally excludes a shift by id (for edit mode).
+ */
+export function findDuplicateShift(
+  weekId: string,
+  employeeId: string,
+  date: string,
+  startTime: string,
+  excludeId?: string
+): Shift | undefined {
+  const slot = getShiftSlot(startTime);
+  return getShifts(weekId).find(
+    (s) =>
+      s.employeeId === employeeId &&
+      s.date === date &&
+      getShiftSlot(s.startTime) === slot &&
+      s.id !== excludeId
+  );
+}
+
+/**
+ * Returns the existing shift in the OTHER slot on the same day for the same employee,
+ * or undefined if no double-shift exists.
+ */
+export function findOtherSlotShift(
+  weekId: string,
+  employeeId: string,
+  date: string,
+  startTime: string,
+  excludeId?: string
+): Shift | undefined {
+  const slot = getShiftSlot(startTime);
+  const otherSlot: ShiftSlot = slot === 'morning' ? 'evening' : 'morning';
+  return getShifts(weekId).find(
+    (s) =>
+      s.employeeId === employeeId &&
+      s.date === date &&
+      getShiftSlot(s.startTime) === otherSlot &&
+      s.id !== excludeId
+  );
+}
+
 // ===== Shifts =====
 
 export function getShifts(weekId?: string): Shift[] {

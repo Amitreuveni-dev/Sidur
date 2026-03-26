@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getEmployees, getShifts, saveShift } from '@/lib/storage';
+import { getEmployees, getShifts, saveShift, findDuplicateShift, findOtherSlotShift, getShiftSlot, getSlotLabel } from '@/lib/storage';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 import { fetchShabbatTimes } from '@/lib/hebcal';
 import type { ShabbatTimes } from '@/lib/hebcal';
@@ -16,6 +16,8 @@ interface ShiftModalProps {
   weekId: string;
   editShift?: Shift | null;
   defaultDate?: string;
+  /** Override the modal's z-index class (default: "z-[90]"). Useful when stacking on top of another modal. */
+  zIndexClass?: string;
 }
 
 export default function ShiftModal({
@@ -25,6 +27,7 @@ export default function ShiftModal({
   weekId,
   editShift,
   defaultDate,
+  zIndexClass = 'z-[90]',
 }: ShiftModalProps) {
   useBodyScrollLock(isOpen);
 
@@ -38,6 +41,7 @@ export default function ShiftModal({
   const [shabbatTimes, setShabbatTimes] = useState<ShabbatTimes | null>(null);
   const [shabbatLoading, setShabbatLoading] = useState(false);
   const [storeOpenTime, setStoreOpenTime] = useState('');
+  const [doubleShiftToast, setDoubleShiftToast] = useState('');
 
   useEffect(() => {
     setEmployees(getEmployees());
@@ -105,13 +109,30 @@ export default function ShiftModal({
       note: note || undefined,
     };
 
+    // Check for double shift (different slot, same day) — show yellow toast
+    const otherSlot = findOtherSlotShift(weekId, employeeId, date, startTime, editShift?.id);
+    if (otherSlot) {
+      const emp = employees.find((e) => e.id === employeeId);
+      const empName = emp?.name ?? employeeId;
+      setDoubleShiftToast(`שים לב: ${empName} עובד היום כפול (בוקר וערב)`);
+      setTimeout(() => setDoubleShiftToast(''), 3500);
+    }
+
     saveShift(shift);
     onSaved();
     onClose();
-  }, [employeeId, date, startTime, endTime, role, note, weekId, editShift, onSaved, onClose]);
+  }, [employeeId, date, startTime, endTime, role, note, weekId, editShift, employees, onSaved, onClose]);
 
-  const duplicateWarning = employeeId && date && !editShift
-    ? getShifts(weekId).some((s) => s.employeeId === employeeId && s.date === date)
+  // Slot-aware duplicate detection: same employee + same day + same slot
+  const duplicateShift = (employeeId && date && startTime)
+    ? findDuplicateShift(weekId, employeeId, date, startTime, editShift?.id)
+    : undefined;
+  const isDuplicate = !!duplicateShift;
+  const duplicateSlotLabel = startTime ? getSlotLabel(getShiftSlot(startTime)) : '';
+
+  // Different-slot same-day info warning (not blocking)
+  const otherSlotExists = (employeeId && date && startTime)
+    ? !!findOtherSlotShift(weekId, employeeId, date, startTime, editShift?.id)
     : false;
 
   const dow = date ? new Date(date + 'T12:00:00').getDay() : -1;
@@ -125,7 +146,7 @@ export default function ShiftModal({
       ? `המשמרת חייבת להתחיל לאחר פתיחת החנות (${storeOpenTime})`
       : '';
 
-  const isValid = !!(employeeId && date && startTime && endTime) && !shabbatError && !shabbatLoading;
+  const isValid = !!(employeeId && date && startTime && endTime) && !shabbatError && !shabbatLoading && !isDuplicate;
 
   const inputClasses =
     'w-full bg-warm-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl p-3 h-[44px] outline-none focus:ring-2 focus:ring-blue-500';
@@ -133,13 +154,14 @@ export default function ShiftModal({
     'w-full bg-warm-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl px-3 h-[40px] outline-none focus:ring-2 focus:ring-blue-500 dark:[color-scheme:dark]';
 
   return (
+    <>
     <AnimatePresence>
       {isOpen && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[90] flex items-end justify-center bg-black/70"
+          className={`fixed inset-0 ${zIndexClass} flex items-end justify-center bg-black/70`}
           onClick={onClose}
         >
           <motion.div
@@ -189,9 +211,14 @@ export default function ShiftModal({
                       אין עובדים. הוסף עובדים דרך תפריט הניהול.
                     </p>
                   )}
-                  {duplicateWarning && (
-                    <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                      ⚠️ לעובד זה כבר יש משמרת ביום זה
+                  {isDuplicate && (
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-bold">
+                      עובד זה כבר משובץ למשמרת {duplicateSlotLabel} ביום זה
+                    </p>
+                  )}
+                  {!isDuplicate && otherSlotExists && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                      שים לב: לעובד זה כבר יש משמרת ביום זה (משמרת כפולה)
                     </p>
                   )}
                 </div>
@@ -304,5 +331,23 @@ export default function ShiftModal({
         </motion.div>
       )}
     </AnimatePresence>
+
+    {/* Double-shift yellow toast — rendered outside the modal so it persists after modal closes */}
+    <AnimatePresence>
+      {doubleShiftToast && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+          className="fixed top-[calc(1rem+env(safe-area-inset-top))] inset-x-0 mx-auto w-fit z-[200] pointer-events-none"
+        >
+          <div className="bg-amber-400 text-amber-900 text-sm font-bold px-5 py-3 rounded-2xl shadow-lg shadow-amber-400/30 flex items-center gap-2 max-w-[360px] text-center">
+            <span>{doubleShiftToast}</span>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+    </>
   );
 }
