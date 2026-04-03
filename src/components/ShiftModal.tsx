@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getEmployees, getShifts, saveShift, findDuplicateShift, findOtherSlotShift, getShiftSlot, getSlotLabel } from '@/lib/storage';
+import { getEmployees, saveShift, findDuplicateShift, findOtherSlotShift, getShiftSlot, getSlotLabel } from '@/lib/storage';
+import { formatDoubleShiftWarning } from '@/lib/shiftValidation';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 import { fetchShabbatTimes } from '@/lib/hebcal';
 import type { ShabbatTimes } from '@/lib/hebcal';
@@ -41,7 +42,6 @@ export default function ShiftModal({
   const [shabbatTimes, setShabbatTimes] = useState<ShabbatTimes | null>(null);
   const [shabbatLoading, setShabbatLoading] = useState(false);
   const [storeOpenTime, setStoreOpenTime] = useState('');
-  const [doubleShiftToast, setDoubleShiftToast] = useState('');
 
   useEffect(() => {
     setEmployees(getEmployees());
@@ -109,15 +109,6 @@ export default function ShiftModal({
       note: note || undefined,
     };
 
-    // Check for double shift (different slot, same day) — show yellow toast
-    const otherSlot = findOtherSlotShift(weekId, employeeId, date, startTime, editShift?.id);
-    if (otherSlot) {
-      const emp = employees.find((e) => e.id === employeeId);
-      const empName = emp?.name ?? employeeId;
-      setDoubleShiftToast(`שים לב: ${empName} עובד היום כפול (בוקר וערב)`);
-      setTimeout(() => setDoubleShiftToast(''), 3500);
-    }
-
     saveShift(shift);
     onSaved();
     onClose();
@@ -134,6 +125,13 @@ export default function ShiftModal({
   const otherSlotExists = (employeeId && date && startTime)
     ? !!findOtherSlotShift(weekId, employeeId, date, startTime, editShift?.id)
     : false;
+
+  const HEBREW_DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+  const selectedEmployee = employees.find((e) => e.id === employeeId);
+  const hebrewDayName = date ? HEBREW_DAYS[new Date(date + 'T12:00:00').getDay()] : '';
+  const doubleShiftWarningText = (otherSlotExists && selectedEmployee && hebrewDayName)
+    ? formatDoubleShiftWarning(selectedEmployee.name, `יום ${hebrewDayName}`)
+    : '';
 
   const dow = date ? new Date(date + 'T12:00:00').getDay() : -1;
   const isFriday = dow === 5;
@@ -216,11 +214,26 @@ export default function ShiftModal({
                       עובד זה כבר משובץ למשמרת {duplicateSlotLabel} ביום זה
                     </p>
                   )}
-                  {!isDuplicate && otherSlotExists && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                      שים לב: לעובד זה כבר יש משמרת ביום זה (משמרת כפולה)
-                    </p>
-                  )}
+                  <AnimatePresence>
+                    {!isDuplicate && doubleShiftWarningText && (
+                      <motion.div
+                        key="double-shift-banner"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{
+                          opacity: { duration: 0.2 },
+                          height: { type: 'spring', damping: 28, stiffness: 350 },
+                        }}
+                        style={{ overflow: 'hidden' }}
+                        className="mt-2 bg-amber-50 dark:bg-amber-900/15 border border-amber-300 dark:border-amber-600/40 border-r-4 border-r-amber-400 dark:border-r-amber-500 rounded-2xl px-4 py-3"
+                      >
+                        <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
+                          {doubleShiftWarningText}
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {/* Date */}
@@ -332,22 +345,6 @@ export default function ShiftModal({
       )}
     </AnimatePresence>
 
-    {/* Double-shift yellow toast — rendered outside the modal so it persists after modal closes */}
-    <AnimatePresence>
-      {doubleShiftToast && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-          className="fixed top-[calc(1rem+env(safe-area-inset-top))] inset-x-0 mx-auto w-fit z-[200] pointer-events-none"
-        >
-          <div className="bg-amber-400 text-amber-900 text-sm font-bold px-5 py-3 rounded-2xl shadow-lg shadow-amber-400/30 flex items-center gap-2 max-w-[360px] text-center">
-            <span>{doubleShiftToast}</span>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-    </>
+</>
   );
 }
