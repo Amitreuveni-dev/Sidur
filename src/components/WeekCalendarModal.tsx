@@ -65,7 +65,7 @@ interface EmployeePillProps {
 
 function EmployeePill({ name, variant, isConfirmed, delay }: EmployeePillProps) {
   const colorMap = {
-    morning: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300',
+    morning: 'bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-200',
     evening: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-300',
     motzaei: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-400/20 dark:text-yellow-300 ring-1 ring-yellow-300/50 dark:ring-yellow-500/30',
   };

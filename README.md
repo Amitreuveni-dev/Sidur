@@ -138,11 +138,49 @@ public/
 
 - [ ] **Real PNG icons** — Generate 192x192 and 512x512 from the SVG placeholder
 - [ ] **Edit shift** — Long-press or swipe to edit existing shifts
+- [ ] **Double Shift Detection** — Warn when an employee has two shifts on the same day (e.g. "עומר עובד כפולה ביום ראשון - שים לב") during add and AI import
+- [ ] **Toast Duration Fix** — Increase AI-import yellow warning toasts from ~0.5s to 3–4s so they are readable on mobile
+- [ ] **UI Contrast Upgrade** — Employee names and shift times need to be bolder and darker for readability in direct sunlight / glare conditions
+- [ ] **Background Polish** — Refine the app's light background color so cards pop more while preserving the warm "living" aesthetic
 - [ ] **Recurring shifts** — Repeat a shift pattern weekly
 - [ ] **Notifications** — Push reminders before a shift starts
 - [ ] **Multi-user / sync** — Cloud backend (Supabase / Firebase)
 - [ ] **Export to PDF** — Weekly schedule as printable PDF
 - [ ] **Statistics page** — Hours per employee per week/month
+
+---
+
+## 🚀 Roadmap & Pending Tasks
+
+### 1. Smart Parser Upgrades (NLP)
+
+- [ ] **Partial Name Matching** — Improve `matchEmployee` to identify employees by first name only when it is unique in the team (e.g. `"עומר"` instead of `"עומר מזרחי"`). Levenshtein fuzzy matching already exists; extend it to split on space and try each part independently.
+
+- [ ] **Collective Expressions** — Add support for phrases like `"פול שבוע"` / `"כל השבוע"` that automatically generate morning **and** evening shifts for all active days (Sun–Thu + Sat after havdalah).
+
+- [ ] **Deep Time Recognition** — Fix "can work from \[time\]" logic. When only a start time is supplied without an explicit end (e.g. `"מ-19:30"`), the parser should default the end time to closing (`23:00`) instead of snapping to a shift-type bucket.
+
+### 2. New Features
+
+- [ ] **Weather Integration** — Show a weather icon / temperature near each day-header in the main schedule (WeekTimeline). Source: Open-Meteo free API (no key required).
+
+- [ ] **Role Tags** — Add a `role` field (`"manager" | "employee"`) to the Employee DB. Display a distinct icon/color badge for managers in the UI (WeekTimeline pills, employee management panel, WhatsApp export).
+
+### 3. Logic & Safety
+
+- [ ] **Double Shift Detection** — During both manual add (`AddShiftModal`) and AI import (`AIShiftSorter`), check if the target employee already has a shift on the same day. Surface a Hebrew warning banner: `"⚠️ עומר עובד כפולה ביום ראשון - שים לב"`. Allow the manager to proceed anyway (soft warning, not a blocker).
+
+### 4. UI/UX Final Polish
+
+- [ ] **Final Deletion Fix** — Verify AI Import preview (`AIShiftSorter.tsx`) is strictly read-only end-to-end: no `onClick`, no `selectedShifts` state, no "לחץ על שם למחיקה" hint anywhere in the tree. *(Completed 2026-03-27 — leaving here as a regression checkpoint.)*
+
+- [ ] **Mobile Scroll Locking** — Add `overscroll-behavior-y: contain` (Tailwind: `overscroll-y-contain`) on the shifts container in WeekTimeline and WeekCalendarModal to prevent accidental pull-to-refresh on iOS/Android Chrome.
+
+- [ ] **Toast Duration** — AI-import result toasts (yellow warnings, green success) should display for 3–4 seconds. Confirm `duration` prop in all `toast()` calls inside `AIShiftSorter.tsx`.
+
+- [ ] **UI Contrast Upgrade** — Shift details (employee name, start/end time) should use heavier font-weight and a darker text color. Audit `ShiftRow.tsx`, `ShiftCard.tsx`, and calendar pills for readability against the gradient background.
+
+- [ ] **Background Polish** — Evaluate replacing the current gradient with a slightly warmer or more opaque base so card `bg-warm-50` / `dark:bg-slate-800` stands out. Must preserve the "living" feel and remain visually calm on iPhone screen sizes.
 
 ---
 
