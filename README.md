@@ -162,6 +162,39 @@ public/
 - [x] **Export header polish** — `WeekExportView.tsx`: business name ("ניו דלהי · צור הדסה") displayed above title; date range label on right; always light-mode (inline styles only, `backgroundColor: #fdfaf6`)
 - [x] **ShiftRow contrast audit** — times display upgraded to `font-semibold`; role text contrast improved to `text-slate-700 dark:text-slate-200`; employee name already `font-extrabold text-slate-900 dark:text-white`
 
+---
+
+## 🔜 Next Session — Mission Backlog (Sprint 6)
+
+> **Read this section first after every /clear. These are the exact tasks for the next session.**
+
+---
+
+### Mission 1 — AI Parser & Confirmation Flow
+
+- [ ] **Nickname → Employee ID mapping** — Map partial names and common nicknames (e.g. "שמעון" → "שמעון בוסקילה") to official Employee IDs before the parser runs; maintain a nickname dictionary in localStorage or a config constant
+- [ ] **'Full Availability' (פול) interactive prompt** — When the AI parser detects פול/כל השבוע/full week, it must **pause and present a choice** to the manager: Morning only / Evening only / Both (Doubles) — do NOT auto-assign without confirmation
+- [ ] **Zero-hallucination policy** — The parser must never add or infer start/end times beyond what the input explicitly states; no rounding, no MOTZAEI_OFFSET_MINUTES padding unless the word "מוצ״ש" / "motzaei" appears explicitly
+- [ ] **Draft Shifts table** — Before any shift is saved to localStorage, show a full review table (employee · day · start–end · slot) with individual row delete buttons and a single "Save All" confirm button; nothing writes to storage until manager confirms
+
+---
+
+### Mission 2 — Mobile UX Overhaul
+
+- [ ] **Disable swipe/drag-to-close on all modals** — Remove `drag="y"` and `onDragEnd` from every `<motion.div>` modal panel (`WeekCalendarModal`, `StatsModal`, `ShiftModal`, Employee panel, `AIShiftSorter`); modals must only close via explicit button tap
+- [ ] **Static modal header: X + Save** — Every modal gets a fixed non-scrolling header bar: **Save** button (top-left, blue) and **✕ Close** button (top-right); no bottom-sheet drag handle; header must stay visible when content scrolls
+- [ ] **Body scroll-lock audit** — Verify `useBodyScrollLock` is active on every modal; confirm `overscroll-behavior: none` on modal scroll containers; test on iPhone Safari (no pull-to-refresh bleed-through)
+
+---
+
+### Mission 3 — Image Export & Visuals
+
+- [ ] **Hidden 1000px export canvas** — Change `WeekExportView` wrapper `width` to `1000px`; update `html2canvas` call to `scale: 2` (already set) and add `width: 1000` option so mobile browsers don't clip the capture to viewport width
+- [ ] **Employee name text-wrap in export bubbles** — Pills in `WeekExportView` must handle long names (e.g. "שמעון בוסקילה") without overflow; use `wordBreak: 'break-word'`, `whiteSpace: 'normal'`, `maxWidth` proportional to column width; consider reducing `fontSize` to 9px for names > 8 chars
+- [ ] **html2canvas Vercel fix (already done — verify)** — Confirm `"html2canvas": "^1.4.1"` is in the **committed** `package.json` on `main`; confirm `transpilePackages: ['html2canvas']` is in `next.config.ts`; re-trigger Vercel deploy if needed
+
+---
+
 ### ❌ Removed from scope
 
 - ~~Real PNG icons~~ — user will handle later
