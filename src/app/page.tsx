@@ -10,7 +10,7 @@ import WhatsAppExport from '@/components/WhatsAppExport';
 import WeekCalendarModal from '@/components/WeekCalendarModal';
 import AIShiftSorter from '@/components/AIShiftSorter';
 import ShiftModal from '@/components/ShiftModal';
-import StatsModal from '@/components/StatsModal';
+import { useRouter } from 'next/navigation';
 import { useTheme } from '@/lib/themeContext';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 import { getEmployees, addEmployee, removeEmployee, saveEmployees, getShifts, clearWeekShifts } from '@/lib/storage';
@@ -53,11 +53,11 @@ function getAdjacentWeekId(weekId: string, offset: number): string {
 
 export default function AdminDashboard() {
   const { theme, toggle } = useTheme();
+  const router = useRouter();
   const [weekId, setWeekId] = useState(getCurrentWeekId());
   const [fabModalOpen, setFabModalOpen] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showAISorter, setShowAISorter] = useState(false);
-  const [showStats, setShowStats] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showEmployeePanel, setShowEmployeePanel] = useState(false);
@@ -216,7 +216,7 @@ export default function AdminDashboard() {
                 <span>AI ייבוא</span>
               </button>
               <button
-                onClick={() => setShowStats(true)}
+                onClick={() => router.push('/stats')}
                 className="min-h-[44px] flex items-center gap-1.5 bg-warm-300 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 hover:bg-warm-400 dark:hover:bg-slate-600 active:bg-slate-300 dark:active:bg-slate-600 active:scale-[0.97] font-bold text-sm transition-all duration-150"
               >
                 <span>📊</span>
@@ -290,12 +290,6 @@ export default function AdminDashboard() {
             weekId={weekId}
             weekLabel={formatWeekLabel(weekId)}
             onSaved={triggerRefresh}
-          />
-
-          {/* Stats Modal */}
-          <StatsModal
-            isOpen={showStats}
-            onClose={() => setShowStats(false)}
           />
 
           {/* Employee Management Panel */}

@@ -150,6 +150,7 @@ export default function WeekCalendarModal({
   const [confirmations, setConfirmations] = useState<Confirmation[]>([]);
   const [shabbatTimes, setShabbatTimes] = useState<ShabbatTimes | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [canShare, setCanShare] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
 
   // Add-shift sub-modal state
@@ -169,6 +170,14 @@ export default function WeekCalendarModal({
     const fridayDate = weekDates[5];
     if (fridayDate) fetchShabbatTimes(fridayDate).then(setShabbatTimes);
   }, [isOpen, weekId, reloadData]);
+
+  useEffect(() => {
+    setCanShare(
+      typeof navigator !== 'undefined' &&
+      typeof navigator.share === 'function' &&
+      typeof navigator.canShare === 'function',
+    );
+  }, []);
 
   const dates = getWeekDates(weekId);
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -247,6 +256,34 @@ export default function WeekCalendarModal({
       setExporting(false);
     }
   }, [weekId]);
+
+  const handleShareImage = useCallback(async () => {
+    if (!exportRef.current) return;
+    setExporting(true);
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(exportRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#fdfaf6',
+        logging: false,
+      });
+      await new Promise<void>((resolve) => {
+        canvas.toBlob(async (blob) => {
+          if (!blob) { resolve(); return; }
+          const file = new File([blob], `sidur-${weekId}.png`, { type: 'image/png' });
+          try {
+            await navigator.share({ files: [file], title: `סידור ${weekLabel}` });
+          } catch {
+            // user cancelled
+          }
+          resolve();
+        }, 'image/png');
+      });
+    } finally {
+      setExporting(false);
+    }
+  }, [weekId, weekLabel]);
 
   // Determine if a Saturday shift is motzaei shabbat
   const isMotzaei = useCallback(
@@ -342,6 +379,17 @@ export default function WeekCalendarModal({
                       {exporting ? '⏳' : '🖼️'}
                       <span className="hidden sm:inline">{exporting ? 'שומר...' : 'תמונה'}</span>
                     </button>
+                    {canShare && (
+                      <button
+                        onClick={handleShareImage}
+                        disabled={exporting}
+                        className="min-h-[36px] min-w-[44px] flex items-center justify-center gap-1 rounded-lg text-xs font-bold text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 active:scale-95 transition-all duration-150 disabled:opacity-50 px-2"
+                        aria-label="שתף תמונה"
+                      >
+                        📤
+                        <span className="hidden sm:inline">שתף</span>
+                      </button>
+                    )}
                     <button
                       onClick={onClose}
                       className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 hover:bg-warm-200 dark:hover:bg-slate-700 transition-colors"

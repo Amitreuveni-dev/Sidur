@@ -155,6 +155,13 @@ public/
 - [x] **Export as Image** — `WeekExportView.tsx`: static inline-style grid (RTL, Hebrew, Shabbat times); captured via `html2canvas` at 2× resolution; downloads as `sidur-YYYY-Wnn.png`; export button (🖼️) in WeekCalendarModal header
 - [x] **shiftValidation helper** — created missing `src/lib/shiftValidation.ts` (`formatDoubleShiftWarning`) that ShiftModal depends on
 
+### ✅ DONE — Sprint 5 (Full Project — Stats Page, Export Polish, UI Audit)
+
+- [x] **Statistics page** (`/stats`) — dedicated route replacing modal; CSS bar chart (hours per employee); month navigator (prev/next with historical data); week navigator (prev/next weeks); summary cards (total hours + shifts)
+- [x] **Web Share API** — 📤 Share button in WeekCalendarModal header (rendered only when `navigator.share` is available); captures canvas → PNG blob → `navigator.share({ files })` for direct WhatsApp/iMessage send without download
+- [x] **Export header polish** — `WeekExportView.tsx`: business name ("ניו דלהי · צור הדסה") displayed above title; date range label on right; always light-mode (inline styles only, `backgroundColor: #fdfaf6`)
+- [x] **ShiftRow contrast audit** — times display upgraded to `font-semibold`; role text contrast improved to `text-slate-700 dark:text-slate-200`; employee name already `font-extrabold text-slate-900 dark:text-white`
+
 ### ❌ Removed from scope
 
 - ~~Real PNG icons~~ — user will handle later
@@ -173,4 +180,7 @@ public/
 - Icons are **placeholders** — user will supply real logo later
 - Branch strategy: every feature in its own branch, then PR to main
 - Commits in **Hebrew or English** with descriptive messages
+- Stats are at `/stats` (dedicated page, not a modal); `StatsModal.tsx` is kept but no longer used in the main dashboard
+- Export image: `WeekExportView.tsx` uses inline styles only (no Tailwind) — required for reliable html2canvas capture
+- Web Share API button only renders when `navigator.canShare` is available (mobile only)
 

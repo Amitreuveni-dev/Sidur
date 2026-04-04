@@ -92,11 +92,21 @@ const WeekExportView = forwardRef<HTMLDivElement, WeekExportViewProps>(
         }}
       >
         {/* Title */}
-        <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#1e293b' }}>
-            סידור עבודה — {weekLabel}
-          </h2>
-          <span style={{ fontSize: 10, color: '#94a3b8' }}>ניו דלהי · צור הדסה</span>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 2 }}>
+                ניו דלהי · צור הדסה
+              </div>
+              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#1e293b' }}>
+                סידור עבודה
+              </h2>
+            </div>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 2 }}>תקופה</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#475569' }}>{weekLabel}</div>
+            </div>
+          </div>
         </div>
 
         {/* Grid */}
