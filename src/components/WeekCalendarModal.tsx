@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getShifts, getEmployees, getConfirmations, removeShift } from '@/lib/storage';
 import { fetchShabbatTimes } from '@/lib/hebcal';
@@ -8,6 +8,7 @@ import type { ShabbatTimes } from '@/lib/hebcal';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 import ShiftModal from './ShiftModal';
 import ManagerNote from './ManagerNote';
+import WeekExportView from './WeekExportView';
 import type { Shift, Employee, Confirmation } from '@/lib/types';
 
 // ───────────────────────────── Constants ─────────────────────────────
@@ -148,6 +149,9 @@ export default function WeekCalendarModal({
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [confirmations, setConfirmations] = useState<Confirmation[]>([]);
   const [shabbatTimes, setShabbatTimes] = useState<ShabbatTimes | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [canShare, setCanShare] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
 
   // Add-shift sub-modal state
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -166,6 +170,14 @@ export default function WeekCalendarModal({
     const fridayDate = weekDates[5];
     if (fridayDate) fetchShabbatTimes(fridayDate).then(setShabbatTimes);
   }, [isOpen, weekId, reloadData]);
+
+  useEffect(() => {
+    setCanShare(
+      typeof navigator !== 'undefined' &&
+      typeof navigator.share === 'function' &&
+      typeof navigator.canShare === 'function',
+    );
+  }, []);
 
   const dates = getWeekDates(weekId);
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -223,6 +235,55 @@ export default function WeekCalendarModal({
     reloadData();
     onSaved?.();
   }, [reloadData, onSaved]);
+
+  const handleExportImage = useCallback(async () => {
+    if (!exportRef.current) return;
+    setExporting(true);
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(exportRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#fdfaf6',
+        logging: false,
+      });
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sidur-${weekId}.png`;
+      a.click();
+    } finally {
+      setExporting(false);
+    }
+  }, [weekId]);
+
+  const handleShareImage = useCallback(async () => {
+    if (!exportRef.current) return;
+    setExporting(true);
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(exportRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#fdfaf6',
+        logging: false,
+      });
+      await new Promise<void>((resolve) => {
+        canvas.toBlob(async (blob) => {
+          if (!blob) { resolve(); return; }
+          const file = new File([blob], `sidur-${weekId}.png`, { type: 'image/png' });
+          try {
+            await navigator.share({ files: [file], title: `סידור ${weekLabel}` });
+          } catch {
+            // user cancelled
+          }
+          resolve();
+        }, 'image/png');
+      });
+    } finally {
+      setExporting(false);
+    }
+  }, [weekId, weekLabel]);
 
   // Determine if a Saturday shift is motzaei shabbat
   const isMotzaei = useCallback(
@@ -309,6 +370,26 @@ export default function WeekCalendarModal({
                   </h2>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-500 dark:text-slate-400">{weekLabel}</span>
+                    <button
+                      onClick={handleExportImage}
+                      disabled={exporting}
+                      className="min-h-[36px] min-w-[44px] flex items-center justify-center gap-1 rounded-lg text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 active:scale-95 transition-all duration-150 disabled:opacity-50 px-2"
+                      aria-label="שמור כתמונה"
+                    >
+                      {exporting ? '⏳' : '🖼️'}
+                      <span className="hidden sm:inline">{exporting ? 'שומר...' : 'תמונה'}</span>
+                    </button>
+                    {canShare && (
+                      <button
+                        onClick={handleShareImage}
+                        disabled={exporting}
+                        className="min-h-[36px] min-w-[44px] flex items-center justify-center gap-1 rounded-lg text-xs font-bold text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 active:scale-95 transition-all duration-150 disabled:opacity-50 px-2"
+                        aria-label="שתף תמונה"
+                      >
+                        📤
+                        <span className="hidden sm:inline">שתף</span>
+                      </button>
+                    )}
                     <button
                       onClick={onClose}
                       className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 hover:bg-warm-200 dark:hover:bg-slate-700 transition-colors"
@@ -567,6 +648,28 @@ export default function WeekCalendarModal({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ───── Hidden export view — captured by html2canvas ───── */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: '-9999px',
+          pointerEvents: 'none',
+          zIndex: -1,
+        }}
+        aria-hidden="true"
+      >
+        <WeekExportView
+          ref={exportRef}
+          dates={dates}
+          shifts={shifts}
+          employees={employees}
+          weekLabel={weekLabel}
+          candleLighting={shabbatTimes?.candleLighting}
+          havdalah={shabbatTimes?.havdalah}
+        />
+      </div>
 
       {/* ───── Embedded ShiftModal for add-shift flow (stacked above calendar z-[100]) ───── */}
       <ShiftModal

@@ -52,12 +52,12 @@ export default function ShiftRow({
             </span>
           )}
         </div>
-        <div className="text-sm text-slate-700 dark:text-slate-200">
+        <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
           <span>{shift.startTime}</span>
           <span className="mx-1">{'\u2013'}</span>
           <span>{shift.endTime}</span>
           {shift.role && (
-            <span className="text-slate-600 dark:text-slate-300 mr-2">| {shift.role}</span>
+            <span className="text-slate-600 dark:text-slate-200 mr-2">| {shift.role}</span>
           )}
         </div>
         {shift.note && (
