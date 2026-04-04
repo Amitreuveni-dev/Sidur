@@ -307,25 +307,23 @@ export default function AdminDashboard() {
                   animate={{ y: 0 }}
                   exit={{ y: '100%' }}
                   transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                  drag="y"
-                  dragConstraints={{ top: 0 }}
-                  dragElastic={0.2}
-                  onDragEnd={(_e, info) => {
-                    if (info.offset.y > 120 || info.velocity.y > 500) setShowEmployeePanel(false);
-                  }}
                   onClick={(e) => e.stopPropagation()}
                   className="w-full max-w-md bg-warm-50 dark:bg-slate-800 rounded-t-3xl overflow-hidden max-h-[80vh] flex flex-col"
                 >
-                  {/* Non-scrollable: handle bar + title */}
-                  <div className="pt-6 px-6 flex-shrink-0">
-                    <div className="flex justify-center mb-4">
-                      <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-600 rounded-full" />
-                    </div>
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">ניהול עובדים</h2>
+                  {/* Static header */}
+                  <div className="flex-shrink-0 px-4 pt-4 pb-3 border-b border-warm-200 dark:border-slate-700 flex items-center justify-between">
+                    <h2 className="text-base font-bold text-slate-900 dark:text-white">ניהול עובדים</h2>
+                    <button
+                      onClick={() => setShowEmployeePanel(false)}
+                      className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 hover:bg-warm-200 dark:hover:bg-slate-700 transition-colors"
+                      aria-label="סגור"
+                    >
+                      ✕
+                    </button>
                   </div>
 
                   {/* Scrollable content */}
-                  <div className="overflow-y-auto flex-1 px-6 pb-8" style={{ touchAction: 'pan-y' }}>
+                  <div className="overflow-y-auto flex-1 px-6 pt-4 pb-8" style={{ touchAction: 'pan-y', overscrollBehavior: 'contain' }}>
                     {/* Add employee */}
                     <div className="flex gap-2 mb-4">
                       <input
@@ -386,12 +384,6 @@ export default function AdminDashboard() {
                       )}
                     </div>
 
-                    <button
-                      onClick={() => setShowEmployeePanel(false)}
-                      className="w-full mt-4 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 text-sm p-3 min-h-[44px] transition-colors duration-150"
-                    >
-                      סגור
-                    </button>
                   </div>
                 </motion.div>
               </motion.div>
