@@ -1,13 +1,22 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getEmployees, getShifts, saveShift, removeShift, getShiftSlot, getSlotLabel, findOtherSlotShift } from '@/lib/storage';
+import {
+  getEmployees,
+  getShifts,
+  saveShift,
+  removeShift,
+  getShiftSlot,
+  findOtherSlotShift,
+  getNicknameMap,
+  saveNicknameMap,
+} from '@/lib/storage';
 import { fetchShabbatTimes } from '@/lib/hebcal';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 import type { Employee } from '@/lib/types';
 
-// Minutes to add to Havdalah time for generic Saturday shifts (NOT explicit מוצ"ש)
+// Minutes to add to Havdalah time — applied ONLY for explicit מוצ"ש mentions.
 const MOTZAEI_OFFSET_MINUTES = 10;
 
 // Day keyword → index (0 = Sunday … 6 = Saturday)
@@ -17,7 +26,7 @@ const DAY_MAP: Record<string, number> = {
   שלישי: 2, tuesday: 2, tue: 2,
   רביעי: 3, wednesday: 3, wed: 3,
   חמישי: 4, thursday: 4, thu: 4,
-  שישי: 5, friday: 5, fri: 5, // → will be rejected
+  שישי: 5, friday: 5, fri: 5,
   שבת: 6, saturday: 6, sat: 6,
 };
 
@@ -35,11 +44,6 @@ const SHIFT_TIMES: Record<string, { start: string; end: string }> = {
 
 const HEBREW_DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
 
-// ── Comprehensive IGNORE_LIST ─────────────────────────────────────────────────
-// After cleanToken() is applied, if the result is in this set the token is
-// silently skipped.  Includes Hebrew filler
-// words, single-char prefix remnants, connectors, pronouns, verbs, and
-// prepositions that commonly appear in free-text shift descriptions.
 const IGNORE_LIST = new Set([
   // Single-char prefix remnants
   'מ', 'ב', 'ו', 'ה', 'ל',
@@ -59,32 +63,21 @@ const IGNORE_LIST = new Set([
   'סגירה', 'הסגירה', 'סוף', 'הסוף', 'חצות',
 ]);
 
-// Hebrew filler words to strip from the raw line BEFORE tokenisation.
-// Order matters: longer patterns first so "וגם" is matched before "ו".
 const HEBREW_FILLER = [
   'וגם', 'גם', 'יכולה', 'יכול', 'יכלה', 'יכל', 'לעבוד', 'לעבד', 'אפשר', 'בסדר',
   'את', 'של', 'עם', 'עד', 'משעה', 'בשעה',
-  // Verbs / pronouns / connectors
   'אמר', 'אמרה', 'אמרו', 'רוצה', 'רצה', 'שהוא', 'שהיא', 'הוא', 'היא',
-  // Day/time prepositions
   'ביום',
-  // Closing / end-of-day terms (NOT הלילה — it contains לילה which is a valid shift type)
   'סגירה', 'הסגירה', 'סוף', 'הסוף', 'חצות',
-  // Extra fillers
   'כי', 'אם', 'יום',
 ];
 
 // ── Explicit HH:mm time token matching ──────────────────────────────────────
-// Catches tokens like "12:30", "19:00", "ב-12:30", "17" and maps to morning/evening.
 function matchTimeToken(token: string): { start: string; end: string } | null {
-  // Strip ב- / ו- / ל- / מ- prefix (with or without hyphen)
   let cleaned = token.replace(/^[בולמ][-־]?/, '');
-  // Accept HH:mm OR bare hour (1-2 digits, no colon)
   if (/^\d{1,2}:\d{2}$/.test(cleaned)) {
     const [h, m] = cleaned.split(':');
     const padded = `${h.padStart(2, '0')}:${m}`;
-    // Deep time recognition: times before 13:00 are morning (end 17:30),
-    // times from 13:00 onwards default to closing (end 23:00)
     return { start: padded, end: padded < '13:00' ? '17:30' : '23:00' };
   }
   if (/^\d{1,2}$/.test(cleaned)) {
@@ -98,13 +91,8 @@ function matchTimeToken(token: string): { start: string; end: string } | null {
 }
 
 // ── Fuzzy shift-type matching ────────────────────────────────────────────────
-// Checks whether a normalised token *contains* a known shift-type keyword
-// (e.g. "בבוקר" contains "בוקר", "הערב" contains "ערב").
-// Returns the matching SHIFT_TIMES entry or null.
 function matchShiftType(normedToken: string): { start: string; end: string } | null {
-  // 1. Exact match (fast path)
   if (normedToken in SHIFT_TIMES) return SHIFT_TIMES[normedToken];
-  // 2. Contains check — iterate known Hebrew shift keywords
   for (const key of Object.keys(SHIFT_TIMES)) {
     if (normedToken.includes(key)) return SHIFT_TIMES[key];
   }
@@ -112,7 +100,6 @@ function matchShiftType(normedToken: string): { start: string; end: string } | n
 }
 
 // ── Fuzzy day matching ───────────────────────────────────────────────────────
-// Same idea as matchShiftType but for day names.
 function matchDay(normedToken: string): number | null {
   if (normedToken in DAY_MAP) return DAY_MAP[normedToken];
   return null;
@@ -129,9 +116,15 @@ interface ParsedShift {
   isExplicitMotzaei?: boolean;
 }
 
+// Represents an employee line that contained "פול שבוע" — manager must choose slot.
+interface FullWeekPending {
+  employee: Employee;
+}
+
 interface ParseResult {
   shifts: ParsedShift[];
   warnings: string[];
+  fullWeekRequests: FullWeekPending[];
 }
 
 function getWeekDates(weekId: string): string[] {
@@ -164,33 +157,36 @@ function levenshtein(a: string, b: string): number {
   const lb = b.length;
   if (la === 0) return lb;
   if (lb === 0) return la;
-
-  // Single-row DP — prev holds the previous row, curr the current one
   let prev = Array.from({ length: lb + 1 }, (_, i) => i);
   let curr = new Array<number>(lb + 1);
-
   for (let i = 1; i <= la; i++) {
     curr[0] = i;
     for (let j = 1; j <= lb; j++) {
       const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      curr[j] = Math.min(
-        prev[j] + 1,      // deletion
-        curr[j - 1] + 1,  // insertion
-        prev[j - 1] + cost // substitution
-      );
+      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
     }
-    [prev, curr] = [curr, prev]; // swap rows
+    [prev, curr] = [curr, prev];
   }
   return prev[lb];
 }
 
-// ── Employee matching — exact/prefix/substring first, then fuzzy ─────────────
+// ── Employee matching — nickname map first, then exact/prefix/substring, then fuzzy ──
 function matchEmployee(
   name: string,
   employees: Employee[],
-  warnings: string[]
+  warnings: string[],
+  nicknames: Record<string, string> = {}
 ): Employee | undefined {
-  const n = name.trim().toLowerCase();
+  const trimmed = name.trim();
+
+  // Tier 0: nickname map — direct employeeId lookup (case-insensitive key check)
+  const nicknameId = nicknames[trimmed] ?? nicknames[trimmed.toLowerCase()];
+  if (nicknameId) {
+    const byId = employees.find((e) => e.id === nicknameId);
+    if (byId) return byId;
+  }
+
+  const n = trimmed.toLowerCase();
 
   // Tier 1: exact full-name match — fastest path, no ambiguity possible
   const exactFull = employees.find((e) => e.name.toLowerCase() === n);
@@ -237,10 +233,6 @@ function matchEmployee(
   }
 
   if (bestEmp) {
-    // Threshold: max(2, 30% of the shortest name-part length)
-    // Using the shortest part as the denominator keeps the bar proportional
-    // when the input is a short first name; Math.max(2,...) prevents a
-    // single-char part from collapsing the threshold to 0.
     const shortestPart = bestEmp.name
       .toLowerCase()
       .split(' ')
@@ -252,32 +244,19 @@ function matchEmployee(
     }
   }
 
-  // No confident match — caller will emit "employee not found" warning
   return undefined;
 }
 
 // ── Authoritative token cleaner ───────────────────────────────────────────────
-// Single function that replaces the old norm() + stripHebrewPrefix() chain.
-// 1. Strip gershayim / quotes: ״ " ' `
-// 2. Lowercase (for Latin tokens)
-// 3. Strip non-letter/digit chars from edges (Unicode-aware)
-// 4. Recursively strip single-letter Hebrew prefixes (ו ב ל מ ה) when the
-//    remainder is 2+ chars AND is a known keyword or IGNORE_LIST member.
 function cleanToken(token: string): string {
-  // Step 1+2: quotes + lowercase
   let t = token.replace(/[״""''׳"'`]/g, '').toLowerCase();
-  // Step 3: strip edge punctuation
   t = t.replace(/^[^\p{L}\p{N}]+/u, '').replace(/[^\p{L}\p{N}]+$/u, '');
-  // Step 4: recursive Hebrew prefix stripping
   t = _stripPrefixRecursive(t);
   return t;
 }
 
-// Prefixes that can be stripped from the start of a Hebrew token.
 const _CLEAN_PREFIXES = new Set(['ב', 'ו', 'ל', 'מ', 'ה']);
 
-// Returns true if `s` is a keyword the parser cares about (day, shift-type,
-// motzaei, time pattern) or is in IGNORE_LIST.
 function _isCleanTarget(s: string): boolean {
   return (
     s in DAY_MAP ||
@@ -290,36 +269,26 @@ function _isCleanTarget(s: string): boolean {
 }
 
 function _stripPrefixRecursive(s: string): string {
-  if (s.length < 3) return s; // need prefix char + at least 2 remaining
+  if (s.length < 3) return s;
   const first = s[0];
   if (!_CLEAN_PREFIXES.has(first)) return s;
   const rest = s.slice(1);
-  // Depth-first (greedy): try stripping deeper prefixes first
-  // e.g. "ומהסגירה" → strip ו→מהסגירה → strip מ→הסגירה → strip ה→סגירה ✓
   const deeper = _stripPrefixRecursive(rest);
   if (_isCleanTarget(deeper)) return deeper;
   if (_isCleanTarget(rest)) return rest;
   return s;
 }
 
-// Backward-compat alias — old call-sites used norm(). Keep as thin wrapper.
+// Backward-compat alias — "clean without prefix strip" for call-sites that need raw norm.
 function norm(token: string): string {
-  // cleanToken already does everything norm used to do + prefix stripping.
-  // Some call-sites need the raw normalised form WITHOUT prefix stripping
-  // (e.g. splitHebrewConnectors checks the raw normed form before deciding
-  // to split). We keep norm() as "clean without prefix strip" for those.
   let t = token.replace(/[״""''׳"'`]/g, '').toLowerCase();
   t = t.replace(/^[^\p{L}\p{N}]+/u, '').replace(/[^\p{L}\p{N}]+$/u, '');
   return t;
 }
 
-// Tokens that mean "Saturday evening" (Motzaei Shabbat) on their own.
 const MOTZAEI_TOKENS = new Set(['מוצש', 'motzash']);
 
-// Phrases meaning "all week" — expand to all active days (Sun–Thu + Sat).
-// ORDER MATTERS: longer/more-specific phrases must precede shorter ones to
-// prevent a short phrase being matched as a substring of a longer one via
-// String.includes (e.g. 'כל שבוע' is a substring of 'כל השבוע').
+// ORDER MATTERS: longer/more-specific phrases must precede shorter ones.
 const FULL_WEEK_PHRASES = [
   'כל ימות השבוע',
   'כל ימי השבוע',
@@ -338,88 +307,59 @@ function addMinutes(timeStr: string, minutes: number): string {
 }
 
 // ── Strip Hebrew filler from raw text ─────────────────────────────────────────
-// Removes filler words (גם, יכול, את, של, עם, …) and single-char prefixes
-// (ב-, ה-, ל-) when attached via hyphen, BEFORE tokenisation.
 function stripHebrewFiller(line: string): string {
   let result = line;
-  // Remove filler words as whole words (space-bounded)
   for (const filler of HEBREW_FILLER) {
-    // Global replace of the filler word when bounded by whitespace / start / end / comma
     result = result.replace(new RegExp(`(?<=^|[\\s,،])${filler}(?=$|[\\s,،])`, 'g'), ' ');
   }
-  // Remove prefix-hyphen patterns: "ב-", "ה-", "ל-", "ו-" (e.g. "ב-ערב" → "ערב")
   result = result.replace(/(?<=^|[\s,،])[בהלו][-־]/g, '');
   return result;
 }
 
 // ── Pre-process time ranges ──────────────────────────────────────────────────
-// Scans a line for time-range patterns and replaces them with a single
-// canonical start-time token so matchTimeToken() can pick it up downstream.
-// Also detects "full day" ranges and closing terms and marks them for auto-split.
-// Returns { text, fullDayStart, fullDayEnd } — fullDayStart/End are set when
-// a full-day range is detected and auto-split should happen.
 function normalizeTimeRanges(line: string): { text: string; fullDayStart: string | null; fullDayEnd: string | null } {
   let result = line;
   let fullDayStart: string | null = null;
   let fullDayEnd: string | null = null;
 
-  // Helper: parse a time token (HH:MM or bare hour) to canonical HH:MM
   function toTime(s: string): string {
     return s.includes(':') ? s : `${s}:00`;
   }
-  // Helper: resolve closing terms to a canonical end time
   function toEndTime(s: string): string {
     if (/^(סגירה|הסגירה|סוף|הסוף|הלילה|חצות)$/.test(s)) return '23:00';
     return toTime(s);
   }
-
-  // Helper: check if a time range spans a "full day" (start < 16:00 AND end > 19:00)
   function checkFullDay(startStr: string, endStr: string): boolean {
     const startPadded = toTime(startStr).padStart(5, '0');
     const endPadded   = toEndTime(endStr).padStart(5, '0');
     return startPadded < '16:00' && endPadded > '19:00';
   }
 
-  // 0. "מ-HH:MM עד HH:MM" — Hebrew "from X until Y" with מ- prefix
   result = result.replace(
     /מ[-־]?\s*(\d{1,2}(?::\d{2})?)\s*עד\s*(\d{1,2}(?::\d{2})?)/g,
     (_match, startT: string, endT: string) => {
-      if (checkFullDay(startT, endT)) {
-        fullDayStart = toTime(startT);
-        fullDayEnd   = toEndTime(endT);
-      }
+      if (checkFullDay(startT, endT)) { fullDayStart = toTime(startT); fullDayEnd = toEndTime(endT); }
       return toTime(startT);
     }
   );
-  // 1. "HH:MM עד HH:MM" — Hebrew "until" separator (no מ- prefix)
   result = result.replace(
     /(\d{1,2}(?::\d{2})?)\s*עד\s*(\d{1,2}(?::\d{2})?)/g,
     (_match, startT: string, endT: string) => {
-      if (checkFullDay(startT, endT)) {
-        fullDayStart = toTime(startT);
-        fullDayEnd   = toEndTime(endT);
-      }
+      if (checkFullDay(startT, endT)) { fullDayStart = toTime(startT); fullDayEnd = toEndTime(endT); }
       return toTime(startT);
     }
   );
-  // 2. "HH:MM-HH:MM" or "HH:MM–HH:MM" (hyphen / en-dash)
   result = result.replace(
     /(\d{1,2}(?::\d{2})?)\s*[-–]\s*(\d{1,2}(?::\d{2})?)/g,
     (_match, startT: string, endT: string) => {
-      if (checkFullDay(startT, endT)) {
-        fullDayStart = toTime(startT);
-        fullDayEnd   = toEndTime(endT);
-      }
+      if (checkFullDay(startT, endT)) { fullDayStart = toTime(startT); fullDayEnd = toEndTime(endT); }
       return toTime(startT);
     }
   );
-  // 3. "משעה HH:MM" — strip prefix, keep the time
   result = result.replace(
     /משעה\s+(\d{1,2}(:\d{2})?)/g,
     (_match, time: string) => toTime(time)
   );
-  // 4. Closing-term ranges: "12:30 עד סגירה" / "מ-12 עד חצות"
-  //    Must check the ORIGINAL line before earlier replacements ate the closing term.
   const closingTermRegex = /(?:מ[-־]?\s*)?(\d{1,2}(?::\d{2})?)\s*עד\s*(סגירה|הסגירה|סוף|הסוף|הלילה|חצות)/;
   const closingMatch = line.match(closingTermRegex);
   if (closingMatch) {
@@ -434,37 +374,25 @@ function normalizeTimeRanges(line: string): { text: string; fullDayStart: string
   return { text: result, fullDayStart, fullDayEnd };
 }
 
-// stripHebrewPrefix is now folded into cleanToken(). This thin wrapper
-// is kept for the few internal call-sites that pass an already-normed value
-// and expect prefix stripping only (e.g. splitHebrewConnectors).
 function stripHebrewPrefix(normed: string): string {
   return _stripPrefixRecursive(normed);
 }
 
 // ── Hebrew connector / vav-prefix splitting ──────────────────────────────────
-// Turns "ושני" → ["שני"], "וגם" → [] (pure filler), "ו-ראשון" → ["ראשון"]
-// Ensures connectors never swallow real day/shift tokens.
 function splitHebrewConnectors(rawTokens: string[]): string[] {
   const out: string[] = [];
   for (const t of rawTokens) {
     const n = norm(t);
     const cleaned = cleanToken(t);
-    // Pure connector / filler words — skip entirely (they are separators)
     if (IGNORE_LIST.has(n) || IGNORE_LIST.has(cleaned) || n === 'and') continue;
-
-    // "ו-" prefix with hyphen (e.g. "ו-שני")
     if (t.startsWith('ו-') || t.startsWith('ו־')) {
       const rest = t.slice(2);
       if (rest) out.push(rest);
       continue;
     }
-
-    // Vav prefix glued to a known keyword (e.g. "ושני", "וערב", "ומוצש", "ובוקר")
-    // Also handles multi-prefix: "וברביעי" → strip ו → "ברביעי" → strip ב → "רביעי"
     if (t.startsWith('ו') && t.length > 1) {
       const rest = t.slice(1);
       const restNormed = norm(rest);
-      // Direct match after stripping ו
       if (
         restNormed in DAY_MAP ||
         matchShiftType(restNormed) !== null ||
@@ -474,34 +402,27 @@ function splitHebrewConnectors(rawTokens: string[]): string[] {
         out.push(rest);
         continue;
       }
-      // Try chaining: strip ו then strip Hebrew prefix (e.g. "וברביעי" → "רביעי")
       const prefixStripped = stripHebrewPrefix(restNormed);
       if (prefixStripped !== restNormed) {
-        // prefixStripped matched a known keyword — push canonical form
         out.push(prefixStripped);
         continue;
       }
     }
-
     out.push(t);
   }
   return out;
 }
 
 // ── Detect multi-word מוצאי שבת ──────────────────────────────────────────────
-// Merges consecutive tokens ["מוצאי", "שבת"] into a single "מוצש" token so the
-// state machine handles them as one unit. Also handles "מוצאי" alone.
 function mergeMotzaeiShabbat(tokens: string[]): string[] {
   const out: string[] = [];
   for (let i = 0; i < tokens.length; i++) {
     const n = norm(tokens[i]);
     if (n === 'מוצאי') {
-      // Peek ahead — if next token is שבת, merge
       if (i + 1 < tokens.length && norm(tokens[i + 1]) === 'שבת') {
-        out.push('מוצש'); // canonical form
-        i++; // skip "שבת"
+        out.push('מוצש');
+        i++;
       } else {
-        // "מוצאי" alone — treat as motzaei shabbat
         out.push('מוצש');
       }
     } else {
@@ -515,10 +436,12 @@ function parseText(
   text: string,
   employees: Employee[],
   weekDates: string[],
-  havdalahTime: string | null
+  havdalahTime: string | null,
+  nicknames: Record<string, string> = {}
 ): ParseResult {
   const shifts: ParsedShift[] = [];
   const warnings: string[] = [];
+  const fullWeekRequests: FullWeekPending[] = [];
 
   const lines = text
     .split('\n')
@@ -526,7 +449,6 @@ function parseText(
     .filter((l) => l && !l.startsWith('//') && !l.startsWith('#'));
 
   for (const line of lines) {
-    // ── Detect employee name ──────────────────────────────────────────────
     let rawName = '';
     let restLine = line;
 
@@ -535,7 +457,6 @@ function parseText(
       rawName = line.slice(0, colonIdx).trim();
       restLine = line.slice(colonIdx + 1).trim();
     } else {
-      // Tier 1: employee name at the start of the line
       for (const emp of employees) {
         if (line.toLowerCase().startsWith(emp.name.toLowerCase())) {
           rawName = emp.name;
@@ -543,115 +464,45 @@ function parseText(
           break;
         }
       }
-      // Tier 2: employee name anywhere in the line (e.g. "במוצ״ש עמית")
       if (!rawName) {
         const lineLower = line.toLowerCase();
         for (const emp of employees) {
           const idx = lineLower.indexOf(emp.name.toLowerCase());
           if (idx >= 0) {
             rawName = emp.name;
-            // restLine = everything except the matched name
             restLine = (line.slice(0, idx) + ' ' + line.slice(idx + emp.name.length)).trim();
             break;
           }
         }
       }
-      if (!rawName) continue; // silently skip lines with no recognisable employee name
+      if (!rawName) continue;
     }
 
-    const employee = matchEmployee(rawName, employees, warnings);
+    const employee = matchEmployee(rawName, employees, warnings, nicknames);
     if (!employee) {
       warnings.push(`עובד לא נמצא: "${rawName}" — הוסף אותו קודם בניהול עובדים`);
       continue;
     }
 
     // ── Collective expression: "כל השבוע" / "פול שבוע" ──────────────────
-    // Detect before tokenisation so the phrase doesn't confuse the token loop.
-    // PHRASE ORDER in FULL_WEEK_PHRASES is critical — see constant definition.
+    // Zero-hallucination policy: pause and queue for manager confirmation.
+    // Do NOT auto-assign slots — the manager must choose Morning / Evening / Both.
     const fullWeekPhrase = FULL_WEEK_PHRASES.find((p) => restLine.includes(p));
     if (fullWeekPhrase) {
-      // Strip the collective phrase, then detect shift type from remaining text.
-      const remainingAfterPhrase = restLine.replace(fullWeekPhrase, ' ').trim();
-      const { text: normalized } = normalizeTimeRanges(remainingAfterPhrase);
-      const cleaned = stripHebrewFiller(normalized);
-      const rawToks = cleaned.split(/[\s,،]+/).filter(Boolean);
-      let shiftTime: { start: string; end: string } | null = null;
-      for (const tok of rawToks) {
-        const ns = cleanToken(tok);
-        const tm = matchTimeToken(tok) ?? matchTimeToken(ns);
-        const sm = tm ?? matchShiftType(ns) ?? matchShiftType(norm(tok));
-        if (sm) { shiftTime = sm; break; }
+      if (!fullWeekRequests.find((r) => r.employee.id === employee.id)) {
+        fullWeekRequests.push({ employee });
       }
-      // "פול שבוע" = Sun–Thu: morning + evening; Saturday: evening only (post-havdalah).
-      // Ignore detected shift type — always generate the full grid.
-      const WEEKDAYS = [0, 1, 2, 3, 4]; // Sunday–Thursday
-      for (const dayIdx of WEEKDAYS) {
-        const date = weekDates[dayIdx];
-        if (!date) continue;
-        // Morning
-        shifts.push({
-          employeeId: employee.id,
-          employeeName: employee.name,
-          date,
-          dayName: HEBREW_DAY_NAMES[dayIdx],
-          startTime: SHIFT_TIMES['בוקר'].start,
-          endTime: SHIFT_TIMES['בוקר'].end,
-          note: undefined,
-          isExplicitMotzaei: false,
-        });
-        // Evening
-        shifts.push({
-          employeeId: employee.id,
-          employeeName: employee.name,
-          date,
-          dayName: HEBREW_DAY_NAMES[dayIdx],
-          startTime: SHIFT_TIMES['ערב'].start,
-          endTime: SHIFT_TIMES['ערב'].end,
-          note: undefined,
-          isExplicitMotzaei: false,
-        });
-      }
-      // Saturday — evening only, post-havdalah
-      const satDate = weekDates[6];
-      if (satDate) {
-        const satStart = havdalahTime
-          ? addMinutes(havdalahTime, MOTZAEI_OFFSET_MINUTES)
-          : SHIFT_TIMES['ערב'].start;
-        const satNote = havdalahTime
-          ? `פתיחה ${MOTZAEI_OFFSET_MINUTES} דק׳ אחרי צאת שבת (${havdalahTime})`
-          : undefined;
-        shifts.push({
-          employeeId: employee.id,
-          employeeName: employee.name,
-          date: satDate,
-          dayName: 'שבת',
-          startTime: satStart,
-          endTime: '23:00',
-          note: satNote,
-          isExplicitMotzaei: false,
-        });
-      }
-      continue; // done — skip normal token processing for this line
+      continue; // skip token processing — manager must confirm
     }
 
     // ── Strip filler + Tokenise ─────────────────────────────────────────
-    // 0. Normalize time ranges (e.g. "12:30 עד 18:00" → "12:30")
-    //    Also detects "full day" ranges for auto-split
-    // 1. Strip Hebrew filler words and prefix-hyphens from the line
-    // 2. Split on whitespace / commas
-    // 3. Filter out bare number fragments (e.g. "30", "00") left over
-    //    from range tokenization that are not valid hour tokens
-    // 4. Split Hebrew connectors (ו prefix, גם, וגם)
-    // 5. Merge multi-word "מוצאי שבת" into a single token
     const { text: timeNormalized, fullDayStart, fullDayEnd } = normalizeTimeRanges(restLine);
     const cleanedLine = stripHebrewFiller(timeNormalized);
     const rawTokens = cleanedLine.split(/[\s,،]+/).filter(Boolean);
-    // Fix 3a: Remove bare number fragments (1-2 digits) that are NOT valid hours (6-23)
     const filteredTokens = rawTokens.filter((tok) => {
       const stripped = tok.replace(/^[בולמ][-־]?/, '');
       if (/^\d{1,2}$/.test(stripped)) {
         const num = parseInt(stripped, 10);
-        // Only keep if it's a valid hour for shifts (6-23)
         return num >= 6 && num <= 23;
       }
       return true;
@@ -663,7 +514,6 @@ function parseText(
     let pendingShift: { start: string; end: string } | null = null;
     let lastCommittedDay: number | null = null;
 
-    // Internal helper: push a single shift entry (handles Shabbat time enforcement)
     function pushShift(
       dayIdx: number,
       start: string,
@@ -677,12 +527,12 @@ function parseText(
       let adjStart = start;
       let adjNote = note;
 
-      // Enforce: Saturday shifts must not start before צאת שבת
+      // Zero-hallucination: no MOTZAEI_OFFSET_MINUTES for regular Saturday shifts.
+      // Only enforce havdalah as a hard minimum (no extra padding).
       if (dayIdx === 6 && havdalahTime && !isExplicitMotzaei) {
-        const motzaeiStart = addMinutes(havdalahTime, MOTZAEI_OFFSET_MINUTES);
-        if (adjStart < motzaeiStart) {
-          adjStart = motzaeiStart;
-          adjNote = adjNote ?? `פתיחה ${MOTZAEI_OFFSET_MINUTES} דק׳ אחרי צאת שבת (${havdalahTime})`;
+        if (adjStart < havdalahTime) {
+          adjStart = havdalahTime;
+          adjNote = adjNote ?? `פתיחה מצאת שבת (${havdalahTime})`;
         }
       }
 
@@ -714,12 +564,8 @@ function parseText(
       }
 
       // ── Auto-Split "Full Day" Rule ──
-      // If the line detected a full-day range (fullDayStart is set) and the
-      // shift being committed starts before 16:00 (morning side),
-      // emit TWO shifts: actualStart–17:30 + 17:30–23:00.
       if (fullDayStart && !isExplicitMotzaei && shiftTime.start < '16:00') {
         pushShift(dayIdx, shiftTime.start, '17:30', note, false);
-        // Use exact detected end time — avoids rounding e.g. 22:45 → 23:00
         pushShift(dayIdx, '17:30', fullDayEnd ?? '23:00', note, false);
         lastCommittedDay = dayIdx;
         return;
@@ -732,43 +578,37 @@ function parseText(
     for (let ti = 0; ti < tokens.length; ti++) {
       const t = tokens[ti];
       const n = norm(t);
-      // cleanToken: norm + recursive prefix stripping in one pass
       const ns = cleanToken(t);
 
-      // Pure filler — skip silently
       if (IGNORE_LIST.has(ns) && !(ns in DAY_MAP) && !(ns in SHIFT_TIMES) && !MOTZAEI_TOKENS.has(ns) && matchTimeToken(t) === null) {
         continue;
       }
 
       if (MOTZAEI_TOKENS.has(ns)) {
-        // Flush any complete pending pair first
         if (pendingDay !== null && pendingShift !== null) {
           commitPair(pendingDay, pendingShift);
         }
         pendingDay = null;
         pendingShift = null;
-        // מוצ"ש = Saturday evening — use exact havdalah time (no offset), force day 6
-        const motzaeiStart = havdalahTime ?? '17:30';
+        // Explicit מוצ"ש: apply MOTZAEI_OFFSET_MINUTES padding (user explicitly requested it)
+        const motzaeiStart = havdalahTime ? addMinutes(havdalahTime, MOTZAEI_OFFSET_MINUTES) : '17:30';
         const motzaeiNote = havdalahTime
-          ? `משמרת מוצ״ש — צאת שבת ${havdalahTime}`
+          ? `משמרת מוצ״ש — פתיחה ${MOTZAEI_OFFSET_MINUTES} דק׳ אחרי צאת שבת (${havdalahTime})`
           : `פתיחה מוצ״ש`;
         commitPair(6, { start: motzaeiStart, end: '23:00' }, motzaeiNote, true);
 
       } else if (matchDay(ns) !== null) {
 
         if (pendingDay !== null && pendingShift !== null) {
-          // Previous pair is complete — flush it
           commitPair(pendingDay, pendingShift);
           pendingDay = null;
           pendingShift = null;
         } else if (pendingDay !== null) {
-          // Day without shift type — silently discard
           pendingDay = null;
         }
 
         const newDay = matchDay(ns)!;
         if (pendingShift !== null) {
-          // Shift-before-day order (e.g. "בוקר שני")
           commitPair(newDay, pendingShift);
           pendingShift = null;
         } else {
@@ -776,20 +616,14 @@ function parseText(
         }
 
       } else {
-        // ── Time token matching (e.g. "12:30", "ב-19:00") ──
         const timeMatch = matchTimeToken(t) ?? matchTimeToken(n);
-        // ── Shift-type matching — try prefix-stripped form then fuzzy ──
         const shiftMatch = timeMatch ?? matchShiftType(ns) ?? matchShiftType(n);
         if (shiftMatch) {
-  
           if (pendingDay !== null) {
-            // Day-before-shift order (normal: "שני בוקר")
             commitPair(pendingDay, shiftMatch);
             pendingDay = null;
             pendingShift = null;
           } else if (lastCommittedDay !== null) {
-            // No pending day but we have context from a previous shift on the
-            // same line (e.g. "ראשון בוקר וגם ערב" — ערב inherits ראשון)
             commitPair(lastCommittedDay, shiftMatch);
             pendingShift = null;
           } else {
@@ -799,13 +633,74 @@ function parseText(
       }
     }
 
-    // Flush anything left after the last token
     if (pendingDay !== null && pendingShift !== null) {
       commitPair(pendingDay, pendingShift);
     }
   }
 
-  return { shifts, warnings };
+  return { shifts, warnings, fullWeekRequests };
+}
+
+// ── Generate full-week shifts after manager confirms slot choice ──────────────
+// Called when the manager taps "אשר ויצור משמרות" after choosing Morning/Evening/Both.
+function generateFullWeekShifts(
+  employee: Employee,
+  choice: 'morning' | 'evening' | 'both',
+  weekDates: string[],
+  havdalahTime: string | null
+): ParsedShift[] {
+  const result: ParsedShift[] = [];
+  const WEEKDAYS = [0, 1, 2, 3, 4]; // Sunday–Thursday
+
+  for (const dayIdx of WEEKDAYS) {
+    const date = weekDates[dayIdx];
+    if (!date) continue;
+
+    if (choice === 'morning' || choice === 'both') {
+      result.push({
+        employeeId: employee.id,
+        employeeName: employee.name,
+        date,
+        dayName: HEBREW_DAY_NAMES[dayIdx],
+        startTime: SHIFT_TIMES['בוקר'].start,
+        endTime: SHIFT_TIMES['בוקר'].end,
+        isExplicitMotzaei: false,
+      });
+    }
+
+    if (choice === 'evening' || choice === 'both') {
+      result.push({
+        employeeId: employee.id,
+        employeeName: employee.name,
+        date,
+        dayName: HEBREW_DAY_NAMES[dayIdx],
+        startTime: SHIFT_TIMES['ערב'].start,
+        endTime: SHIFT_TIMES['ערב'].end,
+        isExplicitMotzaei: false,
+      });
+    }
+  }
+
+  // Saturday — evening only (no morning on Shabbat), no MOTZAEI_OFFSET_MINUTES padding
+  if (choice === 'evening' || choice === 'both') {
+    const satDate = weekDates[6];
+    if (satDate) {
+      const satStart = havdalahTime ?? SHIFT_TIMES['ערב'].start;
+      const satNote = havdalahTime ? `פתיחה מצאת שבת (${havdalahTime})` : undefined;
+      result.push({
+        employeeId: employee.id,
+        employeeName: employee.name,
+        date: satDate,
+        dayName: 'שבת',
+        startTime: satStart,
+        endTime: '23:00',
+        note: satNote,
+        isExplicitMotzaei: false,
+      });
+    }
+  }
+
+  return result;
 }
 
 interface AIShiftSorterProps {
@@ -823,75 +718,124 @@ export default function AIShiftSorter({
 }: AIShiftSorterProps) {
   useBodyScrollLock(isOpen);
   const [text, setText] = useState('');
-  const [parsed, setParsed] = useState<ParseResult | null>(null);
+  const [parseWarnings, setParseWarnings] = useState<string[]>([]);
+  const [draftShifts, setDraftShifts] = useState<ParsedShift[]>([]);
+  const [fullWeekPending, setFullWeekPending] = useState<FullWeekPending[]>([]);
+  const [fullWeekChoices, setFullWeekChoices] = useState<Record<string, 'morning' | 'evening' | 'both'>>({});
+  const [weekDatesCache, setWeekDatesCache] = useState<string[]>([]);
+  const [havdalahCache, setHavdalahCache] = useState<string | null>(null);
   const [imported, setImported] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [doubleShiftToasts, setDoubleShiftToasts] = useState<string[]>([]);
   const [showDoubleToast, setShowDoubleToast] = useState(false);
+  const [nicknames, setNicknames] = useState<Record<string, string>>({});
+  const [showNicknameEditor, setShowNicknameEditor] = useState(false);
+  const [newNickname, setNewNickname] = useState('');
+  const [newNicknameTarget, setNewNicknameTarget] = useState('');
+
+  // Load persisted nicknames whenever the modal opens
+  useEffect(() => {
+    if (isOpen) setNicknames(getNicknameMap());
+  }, [isOpen]);
 
   const handleClose = useCallback(() => {
     onClose();
     setText('');
-    setParsed(null);
+    setParseWarnings([]);
+    setDraftShifts([]);
+    setFullWeekPending([]);
+    setFullWeekChoices({});
     setImported(false);
     setShowToast(false);
     setShowDoubleToast(false);
     setDoubleShiftToasts([]);
+    setShowNicknameEditor(false);
+    setNewNickname('');
+    setNewNicknameTarget('');
   }, [onClose]);
 
   const handleParse = useCallback(async () => {
     setParsing(true);
     const employees = getEmployees();
-    const weekDates = getWeekDates(weekId);
-    // Fetch havdalah time for this week (cached after first call)
-    const fridayDate = weekDates[5];
+    const wDates = getWeekDates(weekId);
+    setWeekDatesCache(wDates);
+    const fridayDate = wDates[5];
     const shabbatTimes = fridayDate ? await fetchShabbatTimes(fridayDate) : null;
-    let result: ParseResult;
-    if (!shabbatTimes) {
-      result = parseText(text, employees, weekDates, null);
-    } else {
-      result = parseText(text, employees, weekDates, shabbatTimes.havdalah);
-    }
+    const havdalah = shabbatTimes?.havdalah ?? null;
+    setHavdalahCache(havdalah);
+    const result = parseText(text, employees, wDates, havdalah, nicknames);
 
-    // Deduplicate within the batch only (same employee + day + slot appearing twice in the text).
-    // Storage duplicates are handled at import time by replacing existing shifts.
+    // Deduplicate within the batch
     const batchSeen = new Set<string>();
-    result.shifts = result.shifts.filter((s) => {
+    const deduped = result.shifts.filter((s) => {
       const key = `${s.employeeId}:${s.date}:${getShiftSlot(s.startTime)}`;
       if (batchSeen.has(key)) return false;
       batchSeen.add(key);
       return true;
     });
-    setParsed(result);
+
+    setParseWarnings(result.warnings);
+    setDraftShifts(deduped);
+    setFullWeekPending(result.fullWeekRequests);
+    setFullWeekChoices({});
     setImported(false);
     setParsing(false);
-  }, [text, weekId]);
+  }, [text, weekId, nicknames]);
 
-  const handleImport = useCallback(() => {
-    if (!parsed || parsed.shifts.length === 0) return;
+  // Called after manager has chosen Morning / Evening / Both for every full-week employee
+  const handleApplyFullWeekChoices = useCallback(() => {
+    const allChosen = fullWeekPending.every((r) => fullWeekChoices[r.employee.id]);
+    if (!allChosen) return;
 
-    // ── Step 1: Remove existing shifts for every (employee, day) pair in this batch ──
-    // This implements "re-import replaces" — importing the same employee+day twice
-    // updates their schedule instead of creating duplicates.
-    const affectedKeys = new Set(parsed.shifts.map((s) => `${s.employeeId}:${s.date}`));
+    const newShifts: ParsedShift[] = [];
+    for (const req of fullWeekPending) {
+      const choice = fullWeekChoices[req.employee.id];
+      const generated = generateFullWeekShifts(req.employee, choice, weekDatesCache, havdalahCache);
+      newShifts.push(...generated);
+    }
+
+    // Dedup new full-week shifts against existing draft
+    const batchSeen = new Set(
+      draftShifts.map((s) => `${s.employeeId}:${s.date}:${getShiftSlot(s.startTime)}`)
+    );
+    const filtered = newShifts.filter((s) => {
+      const key = `${s.employeeId}:${s.date}:${getShiftSlot(s.startTime)}`;
+      if (batchSeen.has(key)) return false;
+      batchSeen.add(key);
+      return true;
+    });
+
+    setDraftShifts((prev) => [...prev, ...filtered]);
+    setFullWeekPending([]);
+    setFullWeekChoices({});
+  }, [fullWeekPending, fullWeekChoices, weekDatesCache, havdalahCache, draftShifts]);
+
+  const handleDeleteDraftShift = useCallback((index: number) => {
+    setDraftShifts((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  // "Save All" — writes draft to localStorage only after manager confirms
+  const handleSaveAll = useCallback(() => {
+    if (draftShifts.length === 0) return;
+
+    // Remove existing shifts for every (employee, day) pair in this batch
+    const affectedKeys = new Set(draftShifts.map((s) => `${s.employeeId}:${s.date}`));
     for (const ex of getShifts(weekId)) {
       if (affectedKeys.has(`${ex.employeeId}:${ex.date}`)) {
         removeShift(ex.id);
       }
     }
 
-    // ── Step 2: Save all parsed shifts ──
     const doubleMessages: string[] = [];
     const batchSaved: { employeeId: string; date: string; startTime: string }[] = [];
 
-    for (const s of parsed.shifts) {
+    for (const s of draftShifts) {
       const slot = getShiftSlot(s.startTime);
       const otherSlotVal = slot === 'morning' ? 'evening' : 'morning';
       const batchOther = batchSaved.find(
         (b) => b.employeeId === s.employeeId && b.date === s.date && getShiftSlot(b.startTime) === otherSlotVal
       );
-      // Also check newly-added shifts in storage for the other slot (from this same batch)
       const storageOther = findOtherSlotShift(weekId, s.employeeId, s.date, s.startTime);
       if (batchOther || storageOther) {
         doubleMessages.push(`שים לב: ${s.employeeName} עובד היום כפול (בוקר וערב)`);
@@ -909,7 +853,6 @@ export default function AIShiftSorter({
       batchSaved.push({ employeeId: s.employeeId, date: s.date, startTime: s.startTime });
     }
 
-    // ── Step 3: Show double-shift toasts ──
     if (doubleMessages.length > 0) {
       const unique = [...new Set(doubleMessages)];
       setDoubleShiftToasts(unique);
@@ -924,12 +867,35 @@ export default function AIShiftSorter({
       onImported();
       onClose();
       setText('');
-      setParsed(null);
+      setParseWarnings([]);
+      setDraftShifts([]);
       setImported(false);
       setShowDoubleToast(false);
       setDoubleShiftToasts([]);
     }, 800);
-  }, [parsed, weekId, onImported, onClose]);
+  }, [draftShifts, weekId, onImported, onClose]);
+
+  const handleAddNickname = useCallback(() => {
+    if (!newNickname.trim() || !newNicknameTarget) return;
+    const updated = { ...nicknames, [newNickname.trim()]: newNicknameTarget };
+    setNicknames(updated);
+    saveNicknameMap(updated);
+    setNewNickname('');
+    setNewNicknameTarget('');
+  }, [nicknames, newNickname, newNicknameTarget]);
+
+  const handleDeleteNickname = useCallback((nickname: string) => {
+    const updated = { ...nicknames };
+    delete updated[nickname];
+    setNicknames(updated);
+    saveNicknameMap(updated);
+  }, [nicknames]);
+
+  const hasContent =
+    draftShifts.length > 0 || parseWarnings.length > 0 || fullWeekPending.length > 0;
+  const allFullWeekChosen =
+    fullWeekPending.length > 0 &&
+    fullWeekPending.every((r) => fullWeekChoices[r.employee.id]);
 
   return (
     <>
@@ -970,11 +936,17 @@ export default function AIShiftSorter({
               </div>
 
               {/* Scrollable content */}
-              <div className="overflow-y-auto flex-1 p-4" style={{ touchAction: 'pan-y', overscrollBehavior: 'contain' }}>
+              <div
+                className="overflow-y-auto flex-1 p-4"
+                style={{ touchAction: 'pan-y', overscrollBehavior: 'contain' }}
+              >
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
                   הדבק טקסט עם שמות עובדים וימים. לדוגמה:
                 </p>
-                <div className="bg-warm-100 dark:bg-slate-700/50 rounded-xl p-3 mb-3 text-xs text-slate-600 dark:text-slate-300 font-mono leading-relaxed" dir="rtl">
+                <div
+                  className="bg-warm-100 dark:bg-slate-700/50 rounded-xl p-3 mb-3 text-xs text-slate-600 dark:text-slate-300 font-mono leading-relaxed"
+                  dir="rtl"
+                >
                   <div>יוחאי: ראשון בוקר שני ערב</div>
                   <div>שירה: שלישי בוקר חמישי מוצש</div>
                   <div className="mt-1 text-slate-400 dark:text-slate-500">
@@ -986,13 +958,98 @@ export default function AIShiftSorter({
                   value={text}
                   onChange={(e) => {
                     setText(e.target.value);
-                    setParsed(null);
+                    setParseWarnings([]);
+                    setDraftShifts([]);
+                    setFullWeekPending([]);
+                    setFullWeekChoices({});
                   }}
                   placeholder="הדבק כאן את הטקסט..."
                   rows={5}
                   dir="auto"
-                  className="w-full bg-warm-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none mb-3"
+                  className="w-full bg-warm-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none mb-1"
                 />
+
+                {/* Nickname settings toggle */}
+                <div className="flex justify-end mb-3">
+                  <button
+                    onClick={() => setShowNicknameEditor((v) => !v)}
+                    className="text-xs text-blue-500 dark:text-blue-400 underline underline-offset-2"
+                  >
+                    {showNicknameEditor ? 'סגור ניהול כינויים' : 'ניהול כינויים'}
+                  </button>
+                </div>
+
+                {/* Nickname editor (collapsible) */}
+                {showNicknameEditor && (
+                  <div className="bg-warm-100 dark:bg-slate-700/50 rounded-xl p-3 mb-3">
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                      כינויים לעובדים
+                    </p>
+
+                    {Object.keys(nicknames).length === 0 ? (
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mb-2">
+                        אין כינויים מוגדרים
+                      </p>
+                    ) : (
+                      <div className="flex flex-col gap-1 mb-2">
+                        {Object.entries(nicknames).map(([nick, empId]) => {
+                          const emp = getEmployees().find((e) => e.id === empId);
+                          return (
+                            <div
+                              key={nick}
+                              className="flex items-center justify-between bg-white/60 dark:bg-slate-600/40 rounded-lg px-2.5 py-1.5"
+                            >
+                              <span className="text-xs text-slate-700 dark:text-slate-200">
+                                <span className="font-bold">{nick}</span>
+                                <span className="text-slate-400 dark:text-slate-500 mx-1">→</span>
+                                <span>{emp?.name ?? empId}</span>
+                              </span>
+                              <button
+                                onClick={() => handleDeleteNickname(nick)}
+                                className="min-h-[32px] min-w-[32px] flex items-center justify-center text-red-400 hover:text-red-600 transition-colors"
+                                aria-label="מחק כינוי"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Add nickname form */}
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newNickname}
+                        onChange={(e) => setNewNickname(e.target.value)}
+                        placeholder="כינוי"
+                        dir="rtl"
+                        className="flex-1 min-w-0 bg-white dark:bg-slate-600 text-slate-900 dark:text-white rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400"
+                      />
+                      <select
+                        value={newNicknameTarget}
+                        onChange={(e) => setNewNicknameTarget(e.target.value)}
+                        className="flex-1 min-w-0 bg-white dark:bg-slate-600 text-slate-900 dark:text-white rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500"
+                        dir="rtl"
+                      >
+                        <option value="">בחר עובד</option>
+                        {getEmployees().map((emp) => (
+                          <option key={emp.id} value={emp.id}>
+                            {emp.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={handleAddNickname}
+                        disabled={!newNickname.trim() || !newNicknameTarget}
+                        className="min-h-[32px] px-3 bg-blue-500 text-white text-xs font-bold rounded-lg disabled:opacity-40 hover:bg-blue-600 transition-colors"
+                      >
+                        הוסף
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <button
                   onClick={handleParse}
@@ -1002,17 +1059,18 @@ export default function AIShiftSorter({
                   {parsing ? '⏳ מושך זמני שבת...' : 'פענח טקסט'}
                 </button>
 
-                {/* Preview */}
-                {parsed && (
+                {/* Results area */}
+                {hasContent && (
                   <div className="flex flex-col gap-3">
+
                     {/* Warnings */}
-                    {parsed.warnings.length > 0 && (
+                    {parseWarnings.length > 0 && (
                       <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 rounded-xl p-3">
                         <p className="text-xs font-bold text-yellow-700 dark:text-yellow-400 mb-2">
                           ⚠️ הערות:
                         </p>
                         <div className="flex flex-col gap-1">
-                          {parsed.warnings.map((w, i) => (
+                          {parseWarnings.map((w, i) => (
                             <p key={i} className="text-xs text-yellow-600 dark:text-yellow-500">
                               {w}
                             </p>
@@ -1021,28 +1079,89 @@ export default function AIShiftSorter({
                       </div>
                     )}
 
-                    {/* Parsed shifts preview */}
-                    {parsed.shifts.length > 0 ? (
+                    {/* Full-week choice panel — blocks saving until all choices are made */}
+                    {fullWeekPending.length > 0 && (
+                      <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700/50 rounded-xl p-3">
+                        <p className="text-xs font-bold text-purple-700 dark:text-purple-300 mb-3">
+                          📅 זוהה &quot;פול שבוע&quot; — בחר סוג משמרת:
+                        </p>
+                        <div className="flex flex-col gap-3">
+                          {fullWeekPending.map((req) => (
+                            <div key={req.employee.id}>
+                              <p className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">
+                                {req.employee.name}
+                              </p>
+                              <div className="flex gap-2">
+                                {(['morning', 'evening', 'both'] as const).map((opt) => {
+                                  const label =
+                                    opt === 'morning'
+                                      ? '☀️ בוקר'
+                                      : opt === 'evening'
+                                      ? '🌙 ערב'
+                                      : '📅 כפול';
+                                  const chosen = fullWeekChoices[req.employee.id] === opt;
+                                  return (
+                                    <button
+                                      key={opt}
+                                      onClick={() =>
+                                        setFullWeekChoices((prev) => ({
+                                          ...prev,
+                                          [req.employee.id]: opt,
+                                        }))
+                                      }
+                                      className={`flex-1 min-h-[44px] rounded-xl text-xs font-bold transition-all ${
+                                        chosen
+                                          ? 'bg-purple-600 text-white shadow-sm'
+                                          : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-purple-200 dark:border-purple-700/50'
+                                      }`}
+                                    >
+                                      {label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <button
+                          onClick={handleApplyFullWeekChoices}
+                          disabled={!allFullWeekChosen}
+                          className="mt-3 w-full min-h-[44px] bg-purple-600 text-white font-bold rounded-xl text-sm disabled:opacity-40 hover:bg-purple-700 transition-colors"
+                        >
+                          אשר ויצור משמרות
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Draft shifts table — per-row delete, nothing saves until "שמור הכל" */}
+                    {draftShifts.length > 0 ? (
                       <div>
                         <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
-                          ✓ {parsed.shifts.length} משמרות זוהו:
+                          ✓ {draftShifts.length} משמרות לאישור:
                         </p>
-                        {/* overflow-x-auto + touch-pan-x: horizontal scroll without
-                            triggering pull-to-refresh on mobile */}
                         <div className="overflow-x-auto" style={{ touchAction: 'pan-x' }}>
                           <div className="flex flex-col gap-1.5 min-w-[280px]">
-                            {parsed.shifts.map((s, i) => (
+                            {draftShifts.map((s, i) => (
                               <div
                                 key={i}
                                 className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-lg px-3 py-2"
                               >
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="font-bold text-slate-900 dark:text-white text-sm min-w-[80px] truncate">
-                                    {s.employeeName}
-                                  </span>
-                                  <span className="text-xs text-slate-600 dark:text-slate-300 shrink-0">
-                                    {s.dayName} · {s.startTime}–{s.endTime}
-                                  </span>
+                                <div className="flex items-center gap-2">
+                                  <div className="flex items-center justify-between gap-2 flex-1 min-w-0">
+                                    <span className="font-bold text-slate-900 dark:text-white text-sm truncate">
+                                      {s.employeeName}
+                                    </span>
+                                    <span className="text-xs text-slate-600 dark:text-slate-300 shrink-0">
+                                      {s.dayName} · {s.startTime}–{s.endTime}
+                                    </span>
+                                  </div>
+                                  <button
+                                    onClick={() => handleDeleteDraftShift(i)}
+                                    className="min-h-[32px] min-w-[32px] flex items-center justify-center text-red-400 hover:text-red-600 dark:hover:text-red-400 transition-colors shrink-0"
+                                    aria-label="הסר משמרת"
+                                  >
+                                    ✕
+                                  </button>
                                 </div>
                                 {s.note && (
                                   <p className="text-[10px] text-purple-600 dark:text-purple-400 mt-0.5 truncate">
@@ -1054,17 +1173,17 @@ export default function AIShiftSorter({
                           </div>
                         </div>
                       </div>
-                    ) : (
+                    ) : parseWarnings.length === 0 && fullWeekPending.length === 0 ? (
                       <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-2">
                         לא זוהו משמרות תקינות
                       </p>
-                    )}
+                    ) : null}
                   </div>
                 )}
               </div>
 
-              {/* Footer — import button */}
-              {parsed && parsed.shifts.length > 0 && (
+              {/* Footer — Save All (writes to localStorage only on tap) */}
+              {draftShifts.length > 0 && (
                 <div className="flex-shrink-0 p-4 border-t border-warm-200 dark:border-slate-700">
                   <AnimatePresence mode="wait">
                     {imported ? (
@@ -1077,18 +1196,18 @@ export default function AIShiftSorter({
                         className="w-full flex items-center justify-center gap-2 py-3 bg-green-500 text-white font-bold rounded-xl min-h-[44px]"
                       >
                         <span>✓</span>
-                        <span>יובאו {parsed.shifts.length} משמרות!</span>
+                        <span>יובאו {draftShifts.length} משמרות!</span>
                       </motion.button>
                     ) : (
                       <motion.button
-                        key="import"
+                        key="save"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1, scale: 1 }}
                         whileTap={{ scale: 0.97 }}
-                        onClick={handleImport}
+                        onClick={handleSaveAll}
                         className="w-full bg-green-600 text-white font-bold rounded-xl py-3 min-h-[44px] hover:bg-green-700 active:bg-green-800 transition-all duration-150"
                       >
-                        ייבא {parsed.shifts.length} משמרות
+                        שמור הכל ({draftShifts.length} משמרות)
                       </motion.button>
                     )}
                   </AnimatePresence>
@@ -1099,7 +1218,7 @@ export default function AIShiftSorter({
         )}
       </AnimatePresence>
 
-      {/* Success toast — rendered outside the modal so it persists after modal closes */}
+      {/* Success toast — rendered outside modal so it persists after close */}
       <AnimatePresence>
         {showToast && (
           <motion.div

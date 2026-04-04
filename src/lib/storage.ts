@@ -11,6 +11,7 @@ const KEYS = {
   ADMIN_CODE: 'sidur_admin_code',
   ADMIN_SESSION: 'sidur_admin_session',
   RECOVERY_CODE: 'sidur_recovery_code',
+  NICKNAME_MAP: 'sidur_nickname_map',
 } as const;
 
 // ===== Generic Helpers =====
@@ -248,4 +249,15 @@ export function getRecoveryCode(): string {
 
 export function setRecoveryCode(code: string): void {
   setItem(KEYS.RECOVERY_CODE, code);
+}
+
+// ===== Nickname Map =====
+// Maps a short nickname (e.g. "שמעון") → an official employee ID.
+
+export function getNicknameMap(): Record<string, string> {
+  return getItem<Record<string, string>>(KEYS.NICKNAME_MAP, {});
+}
+
+export function saveNicknameMap(map: Record<string, string>): void {
+  setItem(KEYS.NICKNAME_MAP, map);
 }

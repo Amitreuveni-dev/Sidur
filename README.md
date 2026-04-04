@@ -170,12 +170,12 @@ public/
 
 ---
 
-### Mission 1 — AI Parser & Confirmation Flow
+### ✅ DONE — Sprint 6 Mission 1 (AI Parser & Confirmation Flow)
 
-- [ ] **Nickname → Employee ID mapping** — Map partial names and common nicknames (e.g. "שמעון" → "שמעון בוסקילה") to official Employee IDs before the parser runs; maintain a nickname dictionary in localStorage or a config constant
-- [ ] **'Full Availability' (פול) interactive prompt** — When the AI parser detects פול/כל השבוע/full week, it must **pause and present a choice** to the manager: Morning only / Evening only / Both (Doubles) — do NOT auto-assign without confirmation
-- [ ] **Zero-hallucination policy** — The parser must never add or infer start/end times beyond what the input explicitly states; no rounding, no MOTZAEI_OFFSET_MINUTES padding unless the word "מוצ״ש" / "motzaei" appears explicitly
-- [ ] **Draft Shifts table** — Before any shift is saved to localStorage, show a full review table (employee · day · start–end · slot) with individual row delete buttons and a single "Save All" confirm button; nothing writes to storage until manager confirms
+- [x] **Nickname → Employee ID mapping** — `getNicknameMap` / `saveNicknameMap` in `storage.ts`; "ניהול כינויים" collapsible panel in `AIShiftSorter` with add/delete UI; Tier-0 nickname lookup in `matchEmployee` before any fuzzy matching
+- [x] **'Full Availability' (פול) interactive prompt** — Parser queues a `FullWeekPending` record instead of auto-generating shifts; purple choice panel shows per-employee ☀️ בוקר / 🌙 ערב / 📅 כפול buttons; "אשר ויצור משמרות" only activates once all choices are made
+- [x] **Zero-hallucination policy** — `MOTZAEI_OFFSET_MINUTES` padding now applied **only** for explicit מוצ״ש token; regular Saturday shifts enforce havdalah as a hard minimum with no extra padding; full-week Saturday uses exact havdalah time (no +10)
+- [x] **Draft Shifts table** — Preview rows each have a ✕ delete button; nothing saves until manager taps "שמור הכל (N משמרות)"; `handleSaveAll` replaces old `handleImport`
 
 ---
 
