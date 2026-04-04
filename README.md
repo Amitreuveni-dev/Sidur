@@ -149,14 +149,19 @@ public/
 - [x] **Collective Expressions** — AI parser recognises `"כל השבוע"` / `"פול שבוע"` / `"full week"` and generates shifts for all active days (Sun–Thu + Sat), using the specified shift type or morning as default
 - [x] **Deep Time Recognition** — `matchTimeToken`: threshold moved from 16:00 → **13:00**; times ≥ 13:00 default end to 23:00 (closing) instead of 17:30, covering "מ-14:00" and similar afternoon start-time entries
 
-### 🔲 TODO — Future (out of scope for current sprint)
+### ✅ DONE — Sprint 4 (Statistics & Export)
 
-- [ ] **Real PNG icons** — Generate 192×192 and 512×512 from the SVG placeholder (awaiting real logo from user)
-- [ ] **Recurring shifts** — Repeat a shift pattern weekly
-- [ ] **Notifications** — Push reminders before a shift starts
-- [ ] **Multi-user / sync** — Cloud backend (Supabase / Firebase)
-- [ ] **Export to PDF** — Weekly schedule as printable PDF
-- [ ] **Statistics page** — Hours per employee per week/month
+- [x] **Statistics modal** — `StatsModal.tsx`: bottom-sheet with period selector (week / month / all); hours per employee calculated from startTime/endTime (overnight-safe); sorted by hours desc; totals footer
+- [x] **Export as Image** — `WeekExportView.tsx`: static inline-style grid (RTL, Hebrew, Shabbat times); captured via `html2canvas` at 2× resolution; downloads as `sidur-YYYY-Wnn.png`; export button (🖼️) in WeekCalendarModal header
+- [x] **shiftValidation helper** — created missing `src/lib/shiftValidation.ts` (`formatDoubleShiftWarning`) that ShiftModal depends on
+
+### ❌ Removed from scope
+
+- ~~Real PNG icons~~ — user will handle later
+- ~~Notifications~~ — not needed at this stage
+- ~~Multi-user / sync~~ — staying client-side/localStorage only
+- ~~Export to PDF~~ — replaced by Export as Image
+- ~~Recurring shifts~~ — deferred indefinitely
 
 ---
 
