@@ -167,27 +167,32 @@ export default function ShiftModal({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            drag="y"
-            dragConstraints={{ top: 0 }}
-            dragElastic={0.2}
-            onDragEnd={(_event, info) => {
-              if (info.offset.y > 120 || info.velocity.y > 500) onClose();
-            }}
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-md bg-warm-50 dark:bg-slate-800 rounded-t-3xl overflow-hidden max-h-[90vh] flex flex-col"
           >
-            {/* Non-scrollable: handle bar + title */}
-            <div className="pt-6 px-6 flex-shrink-0">
-              <div className="flex justify-center mb-4">
-                <div className="w-12 h-1.5 bg-warm-300 dark:bg-slate-600 rounded-full" />
-              </div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
+            {/* Static header: Save (left) + Title (center) + ✕ (right) */}
+            <div className="flex-shrink-0 px-4 pt-4 pb-3 border-b border-warm-200 dark:border-slate-700 flex items-center justify-between gap-2">
+              <button
+                onClick={handleSubmit}
+                disabled={!isValid}
+                className="min-h-[36px] px-4 bg-blue-500 text-white text-sm font-bold rounded-xl hover:bg-blue-600 active:bg-blue-700 active:scale-[0.97] disabled:opacity-40 disabled:hover:bg-blue-500 disabled:active:bg-blue-500 disabled:active:scale-100 transition-all duration-150"
+              >
+                {editShift ? 'עדכן' : 'שמור'}
+              </button>
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">
                 {editShift ? 'ערוך משמרת' : 'משמרת חדשה'}
               </h2>
+              <button
+                onClick={onClose}
+                className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 hover:bg-warm-200 dark:hover:bg-slate-700 transition-colors"
+                aria-label="סגור"
+              >
+                ✕
+              </button>
             </div>
 
-            {/* Scrollable: form fields + submit */}
-            <div className="overflow-y-auto flex-1 px-6 pb-8" style={{ touchAction: 'pan-y' }}>
+            {/* Scrollable: form fields */}
+            <div className="overflow-y-auto flex-1 px-6 pt-4 pb-8" style={{ touchAction: 'pan-y', overscrollBehavior: 'contain' }}>
               <div className="flex flex-col gap-4">
                 {/* Employee Select */}
                 <div>
@@ -330,14 +335,6 @@ export default function ShiftModal({
                   />
                 </div>
 
-                {/* Submit */}
-                <button
-                  onClick={handleSubmit}
-                  disabled={!isValid}
-                  className="w-full bg-blue-500 text-white font-bold rounded-xl p-4 min-h-[44px] hover:bg-blue-600 active:bg-blue-700 active:scale-[0.97] disabled:opacity-40 disabled:hover:bg-blue-500 disabled:active:bg-blue-500 disabled:active:scale-100 mt-2 transition-all duration-150"
-                >
-                  {editShift ? 'עדכן משמרת' : 'הוסף משמרת'}
-                </button>
               </div>
             </div>
           </motion.div>

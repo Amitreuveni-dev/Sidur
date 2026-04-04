@@ -351,19 +351,10 @@ export default function WeekCalendarModal({
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              drag="y"
-              dragConstraints={{ top: 0 }}
-              dragElastic={0.2}
-              onDragEnd={(_e, info) => {
-                if (info.offset.y > 120 || info.velocity.y > 500) onClose();
-              }}
               className="w-full bg-warm-50 dark:bg-slate-900 rounded-t-2xl overflow-hidden max-h-[90vh] h-[90vh] flex flex-col"
             >
-              {/* ───── Handle + Header ───── */}
-              <div className="flex-shrink-0 px-4 pt-6 pb-3 border-b border-warm-200 dark:border-slate-700">
-                <div className="flex justify-center mb-4">
-                  <div className="w-12 h-1.5 bg-warm-300 dark:bg-slate-600 rounded-full" />
-                </div>
+              {/* ───── Static Header ───── */}
+              <div className="flex-shrink-0 px-4 pt-4 pb-3 border-b border-warm-200 dark:border-slate-700">
                 <div className="flex items-center justify-between">
                   <h2 className="text-base font-bold text-slate-900 dark:text-white">
                     לוח שבועי

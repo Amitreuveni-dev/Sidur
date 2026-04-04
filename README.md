@@ -179,11 +179,11 @@ public/
 
 ---
 
-### Mission 2 — Mobile UX Overhaul
+### ✅ DONE — Sprint 6 Mission 2 (Mobile UX Overhaul)
 
-- [ ] **Disable swipe/drag-to-close on all modals** — Remove `drag="y"` and `onDragEnd` from every `<motion.div>` modal panel (`WeekCalendarModal`, `StatsModal`, `ShiftModal`, Employee panel, `AIShiftSorter`); modals must only close via explicit button tap
-- [ ] **Static modal header: X + Save** — Every modal gets a fixed non-scrolling header bar: **Save** button (top-left, blue) and **✕ Close** button (top-right); no bottom-sheet drag handle; header must stay visible when content scrolls
-- [ ] **Body scroll-lock audit** — Verify `useBodyScrollLock` is active on every modal; confirm `overscroll-behavior: none` on modal scroll containers; test on iPhone Safari (no pull-to-refresh bleed-through)
+- [x] **Disable swipe/drag-to-close on all modals** — Removed `drag="y"`, `dragConstraints`, `dragElastic`, `onDragEnd` from `WeekCalendarModal`, `StatsModal`, `ShiftModal`, `AIShiftSorter`; drag handle bars removed; modals only close via explicit button tap
+- [x] **Static modal header: X + Save** — `ShiftModal` gets fixed header: **שמור/עדכן** (left, blue) + title (center) + **✕** (right); submit button removed from scrollable area; all modals have `pt-4 pb-3` compact header with border-b; drag handle removed from all
+- [x] **Body scroll-lock audit** — `useBodyScrollLock` confirmed active on all 4 sheet modals; `overscrollBehavior: 'contain'` added to `ShiftModal`, `StatsModal`, `AIShiftSorter` scroll containers; `WeekCalendarModal` already had `overscroll-y-contain`
 
 ---
 

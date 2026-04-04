@@ -97,20 +97,11 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            drag="y"
-            dragConstraints={{ top: 0 }}
-            dragElastic={0.2}
-            onDragEnd={(_e, info) => {
-              if (info.offset.y > 120 || info.velocity.y > 500) onClose();
-            }}
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-md bg-warm-50 dark:bg-slate-900 rounded-t-2xl overflow-hidden max-h-[85vh] flex flex-col"
           >
-            {/* Handle + Header */}
-            <div className="flex-shrink-0 px-4 pt-6 pb-3 border-b border-warm-200 dark:border-slate-700">
-              <div className="flex justify-center mb-4">
-                <div className="w-12 h-1.5 bg-warm-300 dark:bg-slate-600 rounded-full" />
-              </div>
+            {/* Static Header */}
+            <div className="flex-shrink-0 px-4 pt-4 pb-3 border-b border-warm-200 dark:border-slate-700">
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-bold text-slate-900 dark:text-white">
                   📊 סטטיסטיקות שעות
@@ -143,7 +134,7 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
             </div>
 
             {/* Table */}
-            <div className="flex-1 overflow-y-auto px-4 py-3">
+            <div className="flex-1 overflow-y-auto px-4 py-3" style={{ overscrollBehavior: 'contain' }}>
               {stats.length === 0 ? (
                 <p className="text-center text-slate-400 dark:text-slate-500 py-12 text-sm">
                   אין נתונים לתקופה זו
