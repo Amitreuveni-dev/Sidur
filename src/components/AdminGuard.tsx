@@ -10,10 +10,9 @@ import {
   logoutAdmin,
   getAdminCode,
   setAdminCode,
+  getRecoveryCode,
+  setRecoveryCode,
 } from '@/lib/storage';
-
-// Master reset code — hardcoded, never stored in localStorage
-const MASTER_RESET_CODE = 'NEWDELHI2026';
 
 interface AdminGuardProps {
   children: (isAdmin: boolean, adminButtons: React.ReactNode) => React.ReactNode;
@@ -30,6 +29,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
   const [cpCurrentPin, setCpCurrentPin] = useState('');
   const [cpNewPin, setCpNewPin] = useState('');
   const [cpConfirmPin, setCpConfirmPin] = useState('');
+  const [cpRecoveryCode, setCpRecoveryCode] = useState('');
   const [cpError, setCpError] = useState('');
   const [cpSuccess, setCpSuccess] = useState('');
 
@@ -92,6 +92,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
     setCpCurrentPin('');
     setCpNewPin('');
     setCpConfirmPin('');
+    setCpRecoveryCode('');
     setCpError('');
     setCpSuccess('');
   }, []);
@@ -118,18 +119,20 @@ export default function AdminGuard({ children }: AdminGuardProps) {
       return;
     }
 
-    // Save
+    // Save PIN (and optional recovery code)
     setAdminCode(cpNewPin);
+    if (cpRecoveryCode.trim()) setRecoveryCode(cpRecoveryCode.trim());
     setCpSuccess('הסיסמה שונתה בהצלחה \u2713');
     setCpCurrentPin('');
     setCpNewPin('');
     setCpConfirmPin('');
+    setCpRecoveryCode('');
 
     // Auto-close after a short delay
     setTimeout(() => {
       closeChangePassword();
     }, 1500);
-  }, [cpCurrentPin, cpNewPin, cpConfirmPin, closeChangePassword]);
+  }, [cpCurrentPin, cpNewPin, cpConfirmPin, cpRecoveryCode, closeChangePassword]);
 
   // --- Forgot Password handlers (Feature 2) ---
   const openForgotPassword = useCallback(() => {
@@ -152,7 +155,12 @@ export default function AdminGuard({ children }: AdminGuardProps) {
   }, []);
 
   const handleVerifyMasterCode = useCallback(() => {
-    if (fpMasterCode === MASTER_RESET_CODE) {
+    const stored = getRecoveryCode();
+    if (!stored) {
+      setFpError('קוד שחזור לא הוגדר — היכנס עם הסיסמה הנוכחית ועדכן קוד שחזור בהגדרות');
+      return;
+    }
+    if (fpMasterCode === stored) {
       setFpMasterVerified(true);
       setFpError('');
     } else {
@@ -342,10 +350,25 @@ export default function AdminGuard({ children }: AdminGuardProps) {
                 maxLength={6}
                 value={cpConfirmPin}
                 onChange={(e) => setCpConfirmPin(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleChangePassword()}
                 placeholder="הזן שוב את הקוד החדש"
                 className={pinInputClasses}
               />
+
+              {/* Recovery Code (optional) */}
+              <label className="block text-sm text-slate-500 dark:text-slate-400 mb-1 mt-3">
+                קוד שחזור (אופציונלי)
+              </label>
+              <input
+                type="text"
+                value={cpRecoveryCode}
+                onChange={(e) => setCpRecoveryCode(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleChangePassword()}
+                placeholder="מילה סודית לשחזור סיסמה..."
+                className="w-full rounded-xl bg-warm-200 dark:bg-slate-700 text-slate-900 dark:text-white text-center p-3 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-sm"
+              />
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 text-center">
+                הגדר מילת מפתח — תידרש אם תשכח את הסיסמה
+              </p>
 
               {/* Error / Success messages */}
               {cpError && (

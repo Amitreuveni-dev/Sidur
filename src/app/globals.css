@@ -16,7 +16,7 @@
 }
 
 html.light {
-  --bg-primary: #f5efe6;      /* warm-100 — easy on eyes */
+  --bg-primary: #ede5d8;      /* warm-200-ish — deeper sand so cards pop */
   --bg-card: #fdf8f0;         /* warm-50 */
   --bg-input: #ede8df;        /* warm-200 */
   --text-primary: #2c2825;    /* warm dark */

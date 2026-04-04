@@ -3,6 +3,7 @@
 export interface Employee {
   id: string;
   name: string;
+  role?: 'manager' | 'employee';
 }
 
 export interface Shift {

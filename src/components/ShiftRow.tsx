@@ -35,9 +35,14 @@ export default function ShiftRow({
       {/* Shift info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-bold text-slate-900 dark:text-white truncate">
+          <span className="font-extrabold text-slate-900 dark:text-white truncate">
             {employee?.name ?? 'עובד לא ידוע'}
           </span>
+          {employee?.role === 'manager' && (
+            <span className="text-[10px] bg-blue-500/20 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded-md font-bold flex-shrink-0">
+              מנהל
+            </span>
+          )}
           {confirmation && (
             <span className="text-green-500 dark:text-green-400 text-sm flex-shrink-0">{'\u2713'}</span>
           )}
@@ -47,16 +52,16 @@ export default function ShiftRow({
             </span>
           )}
         </div>
-        <div className="text-sm text-slate-600 dark:text-slate-300">
+        <div className="text-sm text-slate-700 dark:text-slate-200">
           <span>{shift.startTime}</span>
           <span className="mx-1">{'\u2013'}</span>
           <span>{shift.endTime}</span>
           {shift.role && (
-            <span className="text-slate-500 dark:text-slate-400 mr-2">| {shift.role}</span>
+            <span className="text-slate-600 dark:text-slate-300 mr-2">| {shift.role}</span>
           )}
         </div>
         {shift.note && (
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{shift.note}</p>
+          <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">{shift.note}</p>
         )}
       </div>
 

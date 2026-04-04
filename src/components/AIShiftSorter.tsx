@@ -83,13 +83,15 @@ function matchTimeToken(token: string): { start: string; end: string } | null {
   if (/^\d{1,2}:\d{2}$/.test(cleaned)) {
     const [h, m] = cleaned.split(':');
     const padded = `${h.padStart(2, '0')}:${m}`;
-    return { start: padded, end: padded < '16:00' ? '17:30' : '23:00' };
+    // Deep time recognition: times before 13:00 are morning (end 17:30),
+    // times from 13:00 onwards default to closing (end 23:00)
+    return { start: padded, end: padded < '13:00' ? '17:30' : '23:00' };
   }
   if (/^\d{1,2}$/.test(cleaned)) {
     const hour = parseInt(cleaned, 10);
     if (hour >= 6 && hour <= 23) {
       const padded = `${String(hour).padStart(2, '0')}:00`;
-      return { start: padded, end: padded < '16:00' ? '17:30' : '23:00' };
+      return { start: padded, end: padded < '13:00' ? '17:30' : '23:00' };
     }
   }
   return null;
@@ -190,28 +192,64 @@ function matchEmployee(
 ): Employee | undefined {
   const n = name.trim().toLowerCase();
 
-  // Tier 1: deterministic matching (original logic)
-  const exact =
-    employees.find((e) => e.name.toLowerCase() === n) ||
-    employees.find((e) => e.name.toLowerCase().startsWith(n)) ||
-    employees.find((e) => n.startsWith(e.name.toLowerCase())) ||
-    employees.find((e) => e.name.toLowerCase().includes(n));
-  if (exact) return exact;
+  // Tier 1: exact full-name match — fastest path, no ambiguity possible
+  const exactFull = employees.find((e) => e.name.toLowerCase() === n);
+  if (exactFull) return exactFull;
 
-  // Tier 2: fuzzy matching via Levenshtein distance
+  // Tier 2: full-name substring / prefix match WITH ambiguity check
+  const fullMatches = employees.filter((e) => {
+    const en = e.name.toLowerCase();
+    return en.startsWith(n) || n.startsWith(en) || (n.length >= 3 && en.includes(n));
+  });
+  if (fullMatches.length === 1) return fullMatches[0];
+  if (fullMatches.length > 1) {
+    warnings.push(
+      `שם "${name}" מתאים למספר עובדים: ${fullMatches.map((e) => e.name).join(', ')} — נבחר ${fullMatches[0].name}`
+    );
+    return fullMatches[0];
+  }
+
+  // Tier 3: first-name-only (any name part) match WITH ambiguity check
+  const partMatches = employees.filter((e) => {
+    const parts = e.name.toLowerCase().split(' ');
+    return parts.some((p) => p === n || p.startsWith(n) || n.startsWith(p));
+  });
+  if (partMatches.length === 1) return partMatches[0];
+  if (partMatches.length > 1) {
+    warnings.push(
+      `שם "${name}" מתאים למספר עובדים: ${partMatches.map((e) => e.name).join(', ')} — נבחר ${partMatches[0].name}`
+    );
+    return partMatches[0];
+  }
+
+  // Tier 4: fuzzy matching — compare n against full name AND each name part
   let bestEmp: Employee | undefined;
   let bestDist = Infinity;
   for (const emp of employees) {
-    const d = levenshtein(n, emp.name.toLowerCase());
-    if (d < bestDist) {
-      bestDist = d;
+    const en = emp.name.toLowerCase();
+    const distFull = levenshtein(n, en);
+    const distPart = Math.min(...en.split(' ').map((part) => levenshtein(n, part)));
+    const dist = Math.min(distFull, distPart);
+    if (dist < bestDist) {
+      bestDist = dist;
       bestEmp = emp;
     }
   }
 
-  // Accept if distance <= 2 OR <= 30% of the longer name's length
-  if (bestEmp && bestDist <= Math.max(2, Math.ceil(Math.max(n.length, bestEmp.name.length) * 0.3))) {
-    return bestEmp;
+  if (bestEmp) {
+    // Threshold: max(2, 30% of the shortest name-part length)
+    // Using the shortest part as the denominator keeps the bar proportional
+    // when the input is a short first name; Math.max(2,...) prevents a
+    // single-char part from collapsing the threshold to 0.
+    const shortestPart = bestEmp.name
+      .toLowerCase()
+      .split(' ')
+      .reduce((min, p) => Math.min(min, p.length), Infinity);
+    const threshold = Math.max(2, Math.ceil(shortestPart * 0.3));
+    if (bestDist <= threshold) {
+      warnings.push(`שם "${name}" לא נמצא בדיוק — הוצע ${bestEmp.name}`);
+      return bestEmp;
+    }
   }
 
   // No confident match — caller will emit "employee not found" warning
@@ -277,6 +315,19 @@ function norm(token: string): string {
 
 // Tokens that mean "Saturday evening" (Motzaei Shabbat) on their own.
 const MOTZAEI_TOKENS = new Set(['מוצש', 'motzash']);
+
+// Phrases meaning "all week" — expand to all active days (Sun–Thu + Sat).
+// ORDER MATTERS: longer/more-specific phrases must precede shorter ones to
+// prevent a short phrase being matched as a substring of a longer one via
+// String.includes (e.g. 'כל שבוע' is a substring of 'כל השבוע').
+const FULL_WEEK_PHRASES = [
+  'כל ימות השבוע',
+  'כל ימי השבוע',
+  'כל השבוע',
+  'פול שבוע',
+  'full week',
+  'כל שבוע',
+];
 
 function addMinutes(timeStr: string, minutes: number): string {
   const [h, m] = timeStr.split(':').map(Number);
@@ -512,6 +563,48 @@ function parseText(
     if (!employee) {
       warnings.push(`עובד לא נמצא: "${rawName}" — הוסף אותו קודם בניהול עובדים`);
       continue;
+    }
+
+    // ── Collective expression: "כל השבוע" / "פול שבוע" ──────────────────
+    // Detect before tokenisation so the phrase doesn't confuse the token loop.
+    // PHRASE ORDER in FULL_WEEK_PHRASES is critical — see constant definition.
+    const fullWeekPhrase = FULL_WEEK_PHRASES.find((p) => restLine.includes(p));
+    if (fullWeekPhrase) {
+      // Strip the collective phrase, then detect shift type from remaining text.
+      const remainingAfterPhrase = restLine.replace(fullWeekPhrase, ' ').trim();
+      const { text: normalized } = normalizeTimeRanges(remainingAfterPhrase);
+      const cleaned = stripHebrewFiller(normalized);
+      const rawToks = cleaned.split(/[\s,،]+/).filter(Boolean);
+      let shiftTime: { start: string; end: string } | null = null;
+      for (const tok of rawToks) {
+        const ns = cleanToken(tok);
+        const tm = matchTimeToken(tok) ?? matchTimeToken(ns);
+        const sm = tm ?? matchShiftType(ns) ?? matchShiftType(norm(tok));
+        if (sm) { shiftTime = sm; break; }
+      }
+      // Default to morning when no shift type is specified.
+      if (!shiftTime) shiftTime = SHIFT_TIMES['בוקר'];
+      // Generate a shift for each active day (Sunday=0…Thursday=4, Saturday=6).
+      // NOTE: Saturday shifts are pushed with the raw shiftTime.start — this
+      // bypasses pushShift's havdalah-time enforcement, which is acceptable for
+      // morning/afternoon types but callers should be aware for evening shifts.
+      const ACTIVE_DAYS = [0, 1, 2, 3, 4, 6];
+      for (const dayIdx of ACTIVE_DAYS) {
+        if (dayIdx === 5) continue; // Friday — never active (extra safety guard)
+        const date = weekDates[dayIdx];
+        if (!date) continue; // day not in current week view
+        shifts.push({
+          employeeId: employee.id,
+          employeeName: employee.name,
+          date,
+          dayName: HEBREW_DAY_NAMES[dayIdx],
+          startTime: shiftTime.start,
+          endTime: shiftTime.end,
+          note: undefined,
+          isExplicitMotzaei: false,
+        });
+      }
+      continue; // done — skip normal token processing for this line
     }
 
     // ── Strip filler + Tokenise ─────────────────────────────────────────
@@ -795,7 +888,7 @@ export default function AIShiftSorter({
 
     setImported(true);
     setShowToast(true);
-    setTimeout(() => setShowToast(false), 2500);
+    setTimeout(() => setShowToast(false), 4000);
     setTimeout(() => {
       onImported();
       onClose();

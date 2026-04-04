@@ -12,7 +12,7 @@ import AIShiftSorter from '@/components/AIShiftSorter';
 import ShiftModal from '@/components/ShiftModal';
 import { useTheme } from '@/lib/themeContext';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
-import { getEmployees, addEmployee, removeEmployee, getShifts, clearWeekShifts } from '@/lib/storage';
+import { getEmployees, addEmployee, removeEmployee, saveEmployees, getShifts, clearWeekShifts } from '@/lib/storage';
 import { formatWeekLabel } from '@/lib/weekLabel';
 import type { Employee } from '@/lib/types';
 
@@ -91,6 +91,16 @@ export default function AdminDashboard() {
 
   const handleRemoveEmployee = useCallback((id: string) => {
     removeEmployee(id);
+    setEmployees(getEmployees());
+  }, []);
+
+  const handleToggleRole = useCallback((id: string) => {
+    const emps = getEmployees();
+    const idx = emps.findIndex((e) => e.id === id);
+    if (idx < 0) return;
+    const current = emps[idx].role;
+    emps[idx] = { ...emps[idx], role: current === 'manager' ? 'employee' : 'manager' };
+    saveEmployees(emps);
     setEmployees(getEmployees());
   }, []);
 
@@ -333,14 +343,31 @@ export default function AdminDashboard() {
                           key={emp.id}
                           className="flex items-center justify-between bg-warm-200 dark:bg-slate-700/50 rounded-xl p-3"
                         >
-                          <span className="text-slate-900 dark:text-white font-bold">{emp.name}</span>
-                          <button
-                            onClick={() => handleRemoveEmployee(emp.id)}
-                            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-warm-200 dark:hover:bg-slate-600 active:bg-warm-300 dark:active:bg-slate-600 transition-all duration-150"
-                            aria-label={`הסר את ${emp.name}`}
-                          >
-                            <span className="text-red-500 dark:text-red-400">{'\u2715'}</span>
-                          </button>
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <span className="text-slate-900 dark:text-white font-bold truncate">{emp.name}</span>
+                            {emp.role === 'manager' && (
+                              <span className="text-[10px] bg-blue-500/20 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded-md font-bold flex-shrink-0">
+                                מנהל
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex gap-1 flex-shrink-0">
+                            <button
+                              onClick={() => handleToggleRole(emp.id)}
+                              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-warm-300 dark:hover:bg-slate-600 active:bg-warm-400 dark:active:bg-slate-500 transition-all duration-150"
+                              aria-label={emp.role === 'manager' ? 'שנה לעובד' : 'שנה למנהל'}
+                              title={emp.role === 'manager' ? 'שנה לעובד' : 'קדם למנהל'}
+                            >
+                              <span className="text-lg">{emp.role === 'manager' ? '\u2B50' : '\uD83D\uDC64'}</span>
+                            </button>
+                            <button
+                              onClick={() => handleRemoveEmployee(emp.id)}
+                              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-warm-200 dark:hover:bg-slate-600 active:bg-warm-300 dark:active:bg-slate-600 transition-all duration-150"
+                              aria-label={`הסר את ${emp.name}`}
+                            >
+                              <span className="text-red-500 dark:text-red-400">{'\u2715'}</span>
+                            </button>
+                          </div>
                         </div>
                       ))}
                       {employees.length === 0 && (

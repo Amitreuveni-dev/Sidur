@@ -50,13 +50,12 @@ export default function EmployeeConfirm({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-4"
-          onClick={onClose}
+          onPointerDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            onClick={(e) => e.stopPropagation()}
             className="w-full max-w-xs bg-warm-50 dark:bg-slate-800 rounded-2xl p-6 shadow-2xl"
           >
             <h2 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-1">
@@ -88,6 +87,7 @@ export default function EmployeeConfirm({
             <button
               onClick={handleConfirm}
               disabled={!resolvedId}
+              style={{ touchAction: 'manipulation' }}
               className="w-full bg-green-500 text-white font-bold rounded-xl p-3 min-h-[44px] hover:bg-green-600 active:bg-green-700 active:scale-[0.97] disabled:opacity-40 disabled:hover:bg-green-500 disabled:active:scale-100 transition-all duration-150"
             >
               אשר משמרת
@@ -95,6 +95,7 @@ export default function EmployeeConfirm({
 
             <button
               onClick={onClose}
+              style={{ touchAction: 'manipulation' }}
               className="w-full mt-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 text-sm p-2 min-h-[44px] transition-colors duration-150"
             >
               ביטול

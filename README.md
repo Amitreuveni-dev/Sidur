@@ -98,7 +98,7 @@ public/
 
 ## Dev Log — Feature Status
 
-### ✅ DONE
+### ✅ DONE — Sprint 1 (Foundation)
 
 - [x] **Project scaffold** — Next.js 16 + TypeScript + Tailwind + next-pwa
 - [x] **RTL layout** — `dir="rtl"`, Rubik font, `lang="he"` on `<html>`
@@ -117,27 +117,41 @@ public/
 - [x] **WhatsApp export** — "שתף בוואטסאפ" button formats Hebrew text + opens wa.me
 - [x] **localStorage store** — `useShiftsStore` + `useEmployeesStore` persist client-side
 - [x] **Hebrew date helpers** — `formatHebrewDate`, `shortDay`, week utils
-- [x] **Employee Management** — CRUD in Settings: add/edit/delete employees with avatar colors
-- [x] **Team page (/team)** — Grid view of all employees with avatar cards
-- [x] **Employee dropdown** — AddShiftModal uses employee list; falls back to free text with hint
+- [x] **Employee Management** — CRUD: add/edit/delete employees
+- [x] **Team page (/team)** — Grid view of all employees
+- [x] **Employee dropdown** — AddShiftModal uses employee list
 - [x] **Framer Motion** — Page animations, modal spring, list enter/exit, FAB press
 - [x] **Glassmorphism** — BottomNav, ShiftCard, modals use `backdrop-blur` + semi-transparent white
 - [x] **Gradient background** — Soft purple→blue→green gradient across all pages
 - [x] **next.config.ts** — Config converted to TypeScript (was .mjs)
-- [x] **Hover effects & micro-animations** — All interactive buttons have tasteful hover states (Tailwind `hover:`, `transition-all`) and Framer Motion scale effects on FAB/gear button; respects dark/light mode
+- [x] **Hover effects & micro-animations** — All interactive buttons have tasteful hover states; Framer Motion scale on FAB; dark/light mode
 
----
+### ✅ DONE — Sprint 2 (Calendar & AI)
 
-- [x] **Morning/Evening split in WeekCalendarModal** — each day-cell is split into ☀ בוקר (startTime < 16:00) / 🌙 ערב (startTime ≥ 16:00) zones with colored labels and a divider
-- [x] **Friday / Shabbat handling** — Friday DayCard disables the + button and shows a "שבת שלום 🕯️" banner with candle-lighting time (fetched from HebCal); Saturday card shows "צאת שבת ✨" time; shifts on Saturday after havdalah are tagged **מוצ״ש** (in both ShiftRow and the WeekCalendarModal grid)
-- [x] **HebCal Shabbat times in WeekCalendarModal** — Friday and Saturday column headers display candle-lighting / havdalah times fetched live from HebCal
-- [x] **AI Shift Sorter** (`AIShiftSorter.tsx`) — "🤖 AI ייבוא" button in admin action bar opens a bottom-sheet; paste text like `יוחאי: ראשון בוקר, שני ערב` or `Yochai: Sun morning, Mon evening`; parser maps Hebrew/English day names + morning/evening keywords → generates previewed Shift objects; Friday mentions are flagged as errors; unrecognised employees surface as warnings; one-tap import saves all parsed shifts
-- [x] **Manager note at end of WhatsApp export** — moved from header position to after the confirmation link (format: `📝 הערת מנהל:\n...`)
+- [x] **Morning/Evening split in WeekCalendarModal** — ☀ בוקר / 🌙 ערב zones with colored labels and a divider
+- [x] **Friday / Shabbat handling** — שבת שלום banner, candle-lighting time, havdalah, מוצ״ש tag
+- [x] **HebCal Shabbat times** — Friday and Saturday column headers display live HebCal times
+- [x] **AI Shift Sorter** (`AIShiftSorter.tsx`) — paste free text → parsed shifts preview → one-tap import; Hebrew + English support; Friday rejection; unrecognised employee warnings
+- [x] **Manager note at end of WhatsApp export** — format: `📝 הערת מנהל:\n...`
+- [x] **Edit shift** — ✏️ button on every ShiftRow in admin mode; ShiftModal supports `editShift` prop for full update workflow
+- [x] **Double Shift Detection** — ShiftModal shows animated amber warning banner when employee already has a shift on the other slot that day; AI import emits yellow toast per affected employee
+- [x] **Weather Integration** — `WeatherWidget` shows live temperature + rain/cold alert from Open-Meteo API (no key required); displayed in page header
 
-### 🔲 TODO — Next Features
+### ✅ DONE — Sprint 3 (Mobile Polish & Full Project)
 
-- [ ] **Real PNG icons** — Generate 192x192 and 512x512 from the SVG placeholder
-- [ ] **Edit shift** — Long-press or swipe to edit existing shifts
+- [x] **Mobile Confirmation fix** — `EmployeeConfirm.tsx`: `onPointerDown` + `e.target === e.currentTarget` guard for iOS Safari; `touch-action: manipulation` on buttons
+- [x] **Partial Name Matching in AI Parser** — `matchEmployee` 4-tier: exact → substring/prefix with ambiguity warning → first-name part matching → fuzzy Levenshtein on full name AND each name part; minimum-length guard on `includes`
+- [x] **UI Contrast Upgrade** — `ShiftRow.tsx`: `font-extrabold` on employee name, `text-slate-700 dark:text-slate-200` on times for sunlight readability
+- [x] **Background Polish** — `globals.css`: `--bg-primary: #ede5d8` (warm-200, deeper sand) in light mode so cards pop; warm card/input tokens updated
+- [x] **Toast Duration Fix** — AI-import success toast: 2500 ms → **4000 ms**; double-shift warning toasts: 3500 ms (unchanged, already correct)
+- [x] **Mobile Scroll Locking** — `overscroll-y-contain` on WeekTimeline shifts container and WeekCalendarModal scrollable grid; prevents accidental pull-to-refresh on iOS/Android Chrome
+- [x] **Role Tags** — `Employee` type gains optional `role: 'manager' | 'employee'`; employee panel shows ⭐/👤 toggle button; "מנהל" badge appears on ShiftRow pills for managers; backward-compatible (existing employees default to no role)
+- [x] **Collective Expressions** — AI parser recognises `"כל השבוע"` / `"פול שבוע"` / `"full week"` and generates shifts for all active days (Sun–Thu + Sat), using the specified shift type or morning as default
+- [x] **Deep Time Recognition** — `matchTimeToken`: threshold moved from 16:00 → **13:00**; times ≥ 13:00 default end to 23:00 (closing) instead of 17:30, covering "מ-14:00" and similar afternoon start-time entries
+
+### 🔲 TODO — Future (out of scope for current sprint)
+
+- [ ] **Real PNG icons** — Generate 192×192 and 512×512 from the SVG placeholder (awaiting real logo from user)
 - [ ] **Recurring shifts** — Repeat a shift pattern weekly
 - [ ] **Notifications** — Push reminders before a shift starts
 - [ ] **Multi-user / sync** — Cloud backend (Supabase / Firebase)
