@@ -48,7 +48,7 @@ const WeekExportView = forwardRef<HTMLDivElement, WeekExportViewProps>(
       border: '1px solid #e2d9ce',
       padding: '6px 8px',
       verticalAlign: 'top',
-      minWidth: 72,
+      minWidth: 88,
       fontFamily: 'Rubik, Arial, sans-serif',
     };
 
@@ -76,7 +76,11 @@ const WeekExportView = forwardRef<HTMLDivElement, WeekExportViewProps>(
       fontSize: 10,
       fontWeight: 600,
       margin: '2px',
-      whiteSpace: 'nowrap',
+      whiteSpace: 'normal',
+      wordBreak: 'break-word',
+      overflowWrap: 'break-word',
+      maxWidth: 90,
+      lineHeight: 1.3,
     };
 
     return (
@@ -87,7 +91,7 @@ const WeekExportView = forwardRef<HTMLDivElement, WeekExportViewProps>(
           background: '#fdfaf6',
           padding: 16,
           fontFamily: 'Rubik, Arial, sans-serif',
-          width: 680,
+          width: 800,
           boxSizing: 'border-box',
         }}
       >
