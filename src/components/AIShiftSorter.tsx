@@ -582,25 +582,52 @@ function parseText(
         const sm = tm ?? matchShiftType(ns) ?? matchShiftType(norm(tok));
         if (sm) { shiftTime = sm; break; }
       }
-      // Default to morning when no shift type is specified.
-      if (!shiftTime) shiftTime = SHIFT_TIMES['בוקר'];
-      // Generate a shift for each active day (Sunday=0…Thursday=4, Saturday=6).
-      // NOTE: Saturday shifts are pushed with the raw shiftTime.start — this
-      // bypasses pushShift's havdalah-time enforcement, which is acceptable for
-      // morning/afternoon types but callers should be aware for evening shifts.
-      const ACTIVE_DAYS = [0, 1, 2, 3, 4, 6];
-      for (const dayIdx of ACTIVE_DAYS) {
-        if (dayIdx === 5) continue; // Friday — never active (extra safety guard)
+      // "פול שבוע" = Sun–Thu: morning + evening; Saturday: evening only (post-havdalah).
+      // Ignore detected shift type — always generate the full grid.
+      const WEEKDAYS = [0, 1, 2, 3, 4]; // Sunday–Thursday
+      for (const dayIdx of WEEKDAYS) {
         const date = weekDates[dayIdx];
-        if (!date) continue; // day not in current week view
+        if (!date) continue;
+        // Morning
         shifts.push({
           employeeId: employee.id,
           employeeName: employee.name,
           date,
           dayName: HEBREW_DAY_NAMES[dayIdx],
-          startTime: shiftTime.start,
-          endTime: shiftTime.end,
+          startTime: SHIFT_TIMES['בוקר'].start,
+          endTime: SHIFT_TIMES['בוקר'].end,
           note: undefined,
+          isExplicitMotzaei: false,
+        });
+        // Evening
+        shifts.push({
+          employeeId: employee.id,
+          employeeName: employee.name,
+          date,
+          dayName: HEBREW_DAY_NAMES[dayIdx],
+          startTime: SHIFT_TIMES['ערב'].start,
+          endTime: SHIFT_TIMES['ערב'].end,
+          note: undefined,
+          isExplicitMotzaei: false,
+        });
+      }
+      // Saturday — evening only, post-havdalah
+      const satDate = weekDates[6];
+      if (satDate) {
+        const satStart = havdalahTime
+          ? addMinutes(havdalahTime, MOTZAEI_OFFSET_MINUTES)
+          : SHIFT_TIMES['ערב'].start;
+        const satNote = havdalahTime
+          ? `פתיחה ${MOTZAEI_OFFSET_MINUTES} דק׳ אחרי צאת שבת (${havdalahTime})`
+          : undefined;
+        shifts.push({
+          employeeId: employee.id,
+          employeeName: employee.name,
+          date: satDate,
+          dayName: 'שבת',
+          startTime: satStart,
+          endTime: '23:00',
+          note: satNote,
           isExplicitMotzaei: false,
         });
       }
@@ -679,6 +706,10 @@ function parseText(
     ) {
       if (dayIdx === 5) {
         warnings.push(`יום שישי הוא יום מנוחה — לא נוצרה משמרת (${employee!.name})`);
+        return;
+      }
+      if (dayIdx === 6 && shiftTime.start < '16:00') {
+        warnings.push(`שבת בוקר אינו פעיל — לא נוצרה משמרת (${employee!.name})`);
         return;
       }
 

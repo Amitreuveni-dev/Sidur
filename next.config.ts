@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   devIndicators: false,
   turbopack: {},
+  transpilePackages: ['html2canvas'],
 };
 
 export default withPWA({
