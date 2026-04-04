@@ -38,6 +38,11 @@ export default function ShiftRow({
           <span className="font-extrabold text-slate-900 dark:text-white truncate">
             {employee?.name ?? 'עובד לא ידוע'}
           </span>
+          {employee?.role === 'manager' && (
+            <span className="text-[10px] bg-blue-500/20 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded-md font-bold flex-shrink-0">
+              מנהל
+            </span>
+          )}
           {confirmation && (
             <span className="text-green-500 dark:text-green-400 text-sm flex-shrink-0">{'\u2713'}</span>
           )}

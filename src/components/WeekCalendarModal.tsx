@@ -322,7 +322,7 @@ export default function WeekCalendarModal({
 
               {/* ───── Scrollable grid area ───── */}
               <div
-                className="overflow-y-auto overflow-x-auto flex-1"
+                className="overflow-y-auto overflow-x-auto flex-1 overscroll-y-contain"
                 style={{ touchAction: 'pan-x pan-y' }}
               >
                 {employees.length === 0 ? (

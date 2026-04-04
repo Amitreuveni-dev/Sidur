@@ -10,6 +10,7 @@ const KEYS = {
   MANAGER_NOTES: 'sidur_manager_notes',
   ADMIN_CODE: 'sidur_admin_code',
   ADMIN_SESSION: 'sidur_admin_session',
+  RECOVERY_CODE: 'sidur_recovery_code',
 } as const;
 
 // ===== Generic Helpers =====
@@ -237,4 +238,14 @@ export function authenticateAdmin(code: string): boolean {
 export function logoutAdmin(): void {
   if (typeof window === 'undefined') return;
   sessionStorage.removeItem(KEYS.ADMIN_SESSION);
+}
+
+// ===== Recovery Code =====
+
+export function getRecoveryCode(): string {
+  return getItem<string>(KEYS.RECOVERY_CODE, '');
+}
+
+export function setRecoveryCode(code: string): void {
+  setItem(KEYS.RECOVERY_CODE, code);
 }
