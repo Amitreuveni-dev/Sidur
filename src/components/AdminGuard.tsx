@@ -115,7 +115,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
 
     // Validate match
     if (cpNewPin !== cpConfirmPin) {
-      setCpError('הקודות החדשים אינם תואמים');
+      setCpError('הקודים החדשים לא תואמים');
       return;
     }
 
@@ -177,7 +177,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
     }
 
     if (fpNewPin !== fpConfirmPin) {
-      setFpError('הקודות אינם תואמים');
+      setFpError('הקודים אינם תואמים');
       return;
     }
 
