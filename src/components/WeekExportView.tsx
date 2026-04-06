@@ -91,7 +91,7 @@ const WeekExportView = forwardRef<HTMLDivElement, WeekExportViewProps>(
           background: '#fdfaf6',
           padding: 16,
           fontFamily: 'Rubik, Arial, sans-serif',
-          width: 800,
+          width: 1000,
           boxSizing: 'border-box',
         }}
       >
@@ -162,7 +162,7 @@ const WeekExportView = forwardRef<HTMLDivElement, WeekExportViewProps>(
                       <div style={{ textAlign: 'center', fontSize: 10, color: '#a78bfa', fontStyle: 'italic' }}>שבת</div>
                     ) : morningShifts.length > 0 ? (
                       morningShifts.map((s) => (
-                        <span key={s.id} style={{ ...pill, background: '#fef3c7', color: '#92400e' }}>
+                        <span key={s.id} style={{ ...pill, background: '#fef3c7', color: '#92400e', ...((empNameMap.get(s.employeeId) ?? '?').length > 8 ? { fontSize: 9 } : {}) }}>
                           {empNameMap.get(s.employeeId) ?? '?'}
                         </span>
                       ))
@@ -202,7 +202,7 @@ const WeekExportView = forwardRef<HTMLDivElement, WeekExportViewProps>(
                           </div>
                         )}
                         {eveningShifts.map((s) => (
-                          <span key={s.id} style={{ ...pill, background: '#e0e7ff', color: '#3730a3' }}>
+                          <span key={s.id} style={{ ...pill, background: '#e0e7ff', color: '#3730a3', ...((empNameMap.get(s.employeeId) ?? '?').length > 8 ? { fontSize: 9 } : {}) }}>
                             {empNameMap.get(s.employeeId) ?? '?'}
                           </span>
                         ))}

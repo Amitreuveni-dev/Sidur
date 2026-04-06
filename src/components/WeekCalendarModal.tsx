@@ -243,6 +243,7 @@ export default function WeekCalendarModal({
       const html2canvas = (await import('html2canvas')).default;
       const canvas = await html2canvas(exportRef.current, {
         scale: 2,
+        width: 1000,
         useCORS: true,
         backgroundColor: '#fdfaf6',
         logging: false,
@@ -264,6 +265,7 @@ export default function WeekCalendarModal({
       const html2canvas = (await import('html2canvas')).default;
       const canvas = await html2canvas(exportRef.current, {
         scale: 2,
+        width: 1000,
         useCORS: true,
         backgroundColor: '#fdfaf6',
         logging: false,
